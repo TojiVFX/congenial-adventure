@@ -2,6 +2,7 @@ import { Context } from 'grammy';
 import { Channel } from '../../db/models/Channel.js';
 import { RequestLog } from '../../db/models/RequestLog.js';
 import { LoggerService } from '../services/loggerService.js';
+import { LinkService } from '../services/linkService.js';
 
 export async function handleChatJoinRequest(ctx: Context): Promise<void> {
   const joinRequest = ctx.chatJoinRequest;
@@ -20,9 +21,9 @@ export async function handleChatJoinRequest(ctx: Context): Promise<void> {
       channelId: chat.id,
       title: chat.title || 'Untitled Channel',
       username: chat.username,
-      startPayload: `ch_${chat.id}`,
+      startPayload: LinkService.generateStartPayload(8),
       autoApproveEnabled: true,
-      welcomeMessage: '🎉 Welcome! Your join request has been approved.',
+      welcomeMessage: '✨ Welcome! Your request has been approved.',
     });
   }
 
@@ -74,7 +75,9 @@ export async function handleChatJoinRequest(ctx: Context): Promise<void> {
 
     // Send Welcome Message in private chat to user (if permitted by Telegram)
     try {
-      const welcome = channel.welcomeMessage || `🎉 Hello ${escapeHtml(user.first_name)}, your request to join <b>${escapeHtml(chat.title || 'the channel')}</b> has been approved!`;
+      const welcome = channel.welcomeMessage ||
+        `✨ <b>Request Approved!</b>\n\n` +
+        `Hello ${escapeHtml(user.first_name)}, your request to join <b>${escapeHtml(chat.title || 'the community')}</b> has been approved. Welcome aboard!`;
       await ctx.api.sendMessage(user.id, welcome, { parse_mode: 'HTML' });
     } catch (dmError) {
       // Telegram does not allow bots to DM users who haven't started the bot yet

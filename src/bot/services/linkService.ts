@@ -4,24 +4,25 @@ import { Channel, IChannel } from '../../db/models/Channel.js';
 
 export class LinkService {
   /**
-   * Generates a unique, URL-safe start payload string resembling Telegram file IDs / tokens
-   * (e.g. BQADAQADfQ8AAtFDkEYjVw5S-EXRHhYE)
+   * Generates a clean, short start payload matching:
+   * https://t.me/YourBot?start=inv_bcibiv
+   * - Starts with 'inv_'
+   * - Followed by 6 to 10 alphanumeric characters (mix of A-Z, a-z, 0-9)
+   * - No hyphens (-)
    */
-  static generateStartPayload(channelId: number): string {
-    // Pack channelId and random bytes in a format that produces strings like BQADAQ...
-    const prefix = Buffer.from([0x05, 0x00, 0x03, 0x01, 0x00, 0x03]); // Telegram-like header bytes
-    const idBuffer = Buffer.alloc(8);
-    // Write BigInt channel ID (handles negative 64-bit Telegram IDs like -100xxxxxxxxxx)
-    idBuffer.writeBigInt64BE(BigInt(channelId));
-    const randomSuffix = crypto.randomBytes(8);
-
-    const fullBuffer = Buffer.concat([prefix, idBuffer, randomSuffix]);
-    return fullBuffer.toString('base64url');
+  static generateStartPayload(length: number = 8): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const randomBytes = crypto.randomBytes(length);
+    let code = '';
+    for (let i = 0; i < length; i++) {
+      code += chars[randomBytes[i] % chars.length];
+    }
+    return `inv_${code}`;
   }
 
   /**
-   * Generates a Telegram Deep-Link for the bot with a given payload
-   * e.g. https://t.me/BotUsername?start=BQADAQADfQ8AAtFDkEYjVw5S-EXRHhYE
+   * Generates a clean, short Telegram Deep-Link for the bot
+   * e.g. https://t.me/BotUsername?start=inv_bcibiv
    */
   static getBotDeepLink(botUsername: string, startPayload: string): string {
     return `https://t.me/${botUsername}?start=${startPayload}`;
@@ -38,7 +39,7 @@ export class LinkService {
   ): Promise<string> {
     try {
       const inviteLinkObj = await bot.api.createChatInviteLink(channelId, {
-        name: `AutoApprove_${channelTitle.substring(0, 15)}`,
+        name: `JoinReq_${channelTitle.substring(0, 12).replace(/[^\w\s]/gi, '')}`,
         creates_join_request: true,
       });
       return inviteLinkObj.invite_link;
@@ -50,30 +51,36 @@ export class LinkService {
 
   /**
    * Resolves a channel from a start payload.
-   * Looks up by direct payload match or decodes the embedded channelId.
+   * Supports short 'inv_...' codes, prefix-less codes, and legacy fallbacks.
    */
   static async resolveChannelFromPayload(payload: string): Promise<IChannel | null> {
     if (!payload || !payload.trim()) return null;
+    const cleanPayload = payload.trim();
 
-    // 1. Direct match by startPayload in DB
-    let channel = await Channel.findOne({ startPayload: payload });
+    // 1. Direct match by startPayload (e.g. inv_bcibiv)
+    let channel = await Channel.findOne({ startPayload: cleanPayload });
     if (channel) return channel;
 
-    // 2. Fallback: try decoding binary payload
+    // 2. Match with 'inv_' prepended if missing
+    if (!cleanPayload.startsWith('inv_')) {
+      channel = await Channel.findOne({ startPayload: `inv_${cleanPayload}` });
+      if (channel) return channel;
+    }
+
+    // 3. Fallback: legacy base64 decoding (for backwards compatibility)
     try {
-      const buf = Buffer.from(payload, 'base64url');
+      const buf = Buffer.from(cleanPayload, 'base64url');
       if (buf.length >= 14) {
-        // Offset 6 is where the 8-byte channelId is written
         const decodedId = Number(buf.readBigInt64BE(6));
         channel = await Channel.findOne({ channelId: decodedId });
         if (channel) return channel;
       }
     } catch {
-      // Not a binary payload, ignore
+      // Ignore binary parsing errors
     }
 
-    // 3. Fallback: direct channelId passed in payload
-    const numericId = parseInt(payload, 10);
+    // 4. Fallback: direct channel ID
+    const numericId = parseInt(cleanPayload, 10);
     if (!isNaN(numericId)) {
       channel = await Channel.findOne({ channelId: numericId });
       if (channel) return channel;

@@ -69,8 +69,8 @@ export class ChannelService {
     try {
       let channel = await Channel.findOne({ channelId });
 
-      // Generate start payload and Telegram invite link
-      const startPayload = LinkService.generateStartPayload(channelId);
+      // Generate short clean start payload and Telegram invite link
+      const startPayload = LinkService.generateStartPayload(8);
       const inviteLink = await LinkService.getOrCreateChannelInviteLink(bot, channelId, validation.title);
 
       if (!channel) {
@@ -87,7 +87,9 @@ export class ChannelService {
         channel.title = validation.title;
         channel.username = validation.username;
         channel.inviteLink = inviteLink;
-        if (!channel.startPayload) channel.startPayload = startPayload;
+        if (!channel.startPayload || !channel.startPayload.startsWith('inv_')) {
+          channel.startPayload = startPayload;
+        }
         await channel.save();
       }
 

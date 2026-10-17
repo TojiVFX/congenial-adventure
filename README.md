@@ -9,7 +9,7 @@ A production-ready Telegram Auto Request Approval Bot built with **TypeScript**,
 - ⚡ **Auto-Approve Join Requests**: Automatically approves new member requests to private channels or groups the moment they arrive via Telegram's `chat_join_request` API.
 - 🎛️ **Toggleable Auto-Approval**: Easily enable or disable auto-approval per channel from the admin panel. When disabled, the invite links still work and requests are kept pending for manual review.
 - 🔗 **Smart Link Generator**:
-  - **Bot Deep Links**: Generates links formatted like `https://t.me/BotUsername?start=BQADAQADfQ8AAtFDkEYjVw5S-EXRHhYE`. When clicked, users start the bot in private, get registered in the database, and receive the channel invite button.
+  - **Bot Deep Links**: Generates clean, short links formatted like `https://t.me/BotUsername?start=inv_bcibiv`. When clicked, users start the bot in private, get registered in the database, and receive the channel invite button.
   - **Direct Invite Links**: Generates native Telegram channel invite links with join requests enabled (`creates_join_request: true`).
 - 👑 **In-Bot Admin Dashboard (`/admin`)**:
   - **Analytics**: Real-time stats on registered users, active channels, total join requests, approved count, and pending count.
@@ -134,10 +134,13 @@ You will see a JSON response confirming:
 
 ## 📖 Deep-Link Format Explained
 
-The bot automatically generates start links in the format:
+The bot automatically generates clean, professional short links in the format:
 ```text
-https://t.me/BotUsername?start=BQADAQADfQ8AAtFDkEYjVw5S-EXRHhYE
+https://t.me/BotUsername?start=inv_bcibiv
 ```
+- Starts with `inv_`
+- Followed by random alphanumeric characters (A-Z, a-z, 0-9)
+- No hyphens (`-`) for clean aesthetic appearance
 
 ### Why use Bot Deep-Links instead of direct channel links?
 1. **Telegram Privacy Barrier**: By default, Telegram prohibits bots from sending private messages or broadcasting to users who have never started the bot.

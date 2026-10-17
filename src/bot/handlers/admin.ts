@@ -37,13 +37,14 @@ export async function getDashboardText(): Promise<string> {
   ]);
 
   return (
-    `👑 <b>Admin Control Dashboard</b>\n\n` +
-    `⚡ <b>Quick Stats:</b>\n` +
-    `• <b>Total Users:</b> <code>${totalUsers}</code>\n` +
-    `• <b>Configured Channels:</b> <code>${totalChannels}</code>\n` +
-    `• <b>Total Requests Approved:</b> <code>${totalApproved}</code>\n` +
-    `• <b>Requests Left Pending:</b> <code>${totalPending}</code>\n\n` +
-    `Select an option below to manage channels, generate links, or configure logs.`
+    `🛡️ <b>Control Dashboard | Auto-Approval System</b>\n\n` +
+    `📊 <b>System Overview:</b>\n` +
+    `• <b>Registered Users:</b> <code>${totalUsers}</code>\n` +
+    `• <b>Connected Channels:</b> <code>${totalChannels}</code>\n` +
+    `• <b>Total Requests:</b> <code>${totalApproved + totalPending}</code>\n` +
+    `• <b>Instant Approvals:</b> <code>${totalApproved}</code>\n` +
+    `• <b>Pending Review:</b> <code>${totalPending}</code>\n\n` +
+    `Select an option below to manage channels, copy short links, or broadcast:`
   );
 }
 
@@ -171,6 +172,12 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
       return;
     }
 
+    // Auto-upgrade legacy or missing payload to clean short inv_ format
+    if (!channel.startPayload || !channel.startPayload.startsWith('inv_')) {
+      channel.startPayload = LinkService.generateStartPayload(8);
+      await channel.save();
+    }
+
     const me = await ctx.api.getMe();
     const deepLink = LinkService.getBotDeepLink(me.username || '', channel.startPayload);
     const statusText = channel.autoApproveEnabled ? '✅ <b>Active (ON)</b>' : '⏸️ <b>Disabled (OFF)</b>';
@@ -182,8 +189,8 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
       `• <b>Auto-Approve:</b> ${statusText}\n` +
       `• <b>Total Requests:</b> <code>${channel.totalRequests || 0}</code>\n` +
       `• <b>Approved:</b> <code>${channel.totalApproved || 0}</code>\n\n` +
-      `🔗 <b>Generated Bot Deep-Link:</b>\n<code>${deepLink}</code>\n\n` +
-      `📨 <b>Direct Invite Link:</b>\n<code>${channel.inviteLink || 'Not generated'}</code>`;
+      `🔗 <b>Short Bot Deep-Link:</b>\n<code>${deepLink}</code>\n\n` +
+      `📨 <b>Direct Channel Link:</b>\n<code>${channel.inviteLink || 'Not generated'}</code>`;
 
     await ctx.editMessageText(text, {
       parse_mode: 'HTML',
@@ -222,8 +229,8 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
       `• <b>Auto-Approve:</b> ${statusText}\n` +
       `• <b>Total Requests:</b> <code>${channel.totalRequests || 0}</code>\n` +
       `• <b>Approved:</b> <code>${channel.totalApproved || 0}</code>\n\n` +
-      `🔗 <b>Generated Bot Deep-Link:</b>\n<code>${deepLink}</code>\n\n` +
-      `📨 <b>Direct Invite Link:</b>\n<code>${channel.inviteLink || 'Not generated'}</code>`;
+      `🔗 <b>Short Bot Deep-Link:</b>\n<code>${deepLink}</code>\n\n` +
+      `📨 <b>Direct Channel Link:</b>\n<code>${channel.inviteLink || 'Not generated'}</code>`;
 
     await ctx.editMessageText(text, {
       parse_mode: 'HTML',
@@ -239,22 +246,56 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
     const channel = await Channel.findOne({ channelId });
     if (!channel) return;
 
+    if (!channel.startPayload || !channel.startPayload.startsWith('inv_')) {
+      channel.startPayload = LinkService.generateStartPayload(8);
+      await channel.save();
+    }
+
     const me = await ctx.api.getMe();
     const deepLink = LinkService.getBotDeepLink(me.username || '', channel.startPayload);
 
     const text =
       `🔗 <b>Shareable Links for ${escapeHtml(channel.title)}</b>\n\n` +
-      `1️⃣ <b>Bot Deep-Link (Recommended):</b>\n` +
+      `1️⃣ <b>Short Bot Deep-Link (Recommended):</b>\n` +
       `<code>${deepLink}</code>\n` +
       `<i>👉 Directs user to start the bot, records them, and guides them to request entry.</i>\n\n` +
-      `2️⃣ <b>Direct Channel Join-Request Link:</b>\n` +
+      `2️⃣ <b>Direct Channel Request Link:</b>\n` +
       `<code>${channel.inviteLink || 'Not available'}</code>\n` +
       `<i>👉 Directly opens the channel request popup.</i>`;
 
     await ctx.editMessageText(text, {
       parse_mode: 'HTML',
       link_preview_options: { is_disabled: true },
-      reply_markup: AdminKeyboards.channelDetailMenu(channel),
+      reply_markup: AdminKeyboards.linksMenu(channel.channelId),
+    });
+    return;
+  }
+
+  // Regenerate Short Link for Channel
+  if (data.startsWith('regen_link_')) {
+    const channelId = parseInt(data.replace('regen_link_', ''), 10);
+    const channel = await Channel.findOne({ channelId });
+    if (!channel) return;
+
+    // Generate fresh short code (inv_xxxxxxxx)
+    channel.startPayload = LinkService.generateStartPayload(8);
+    await channel.save();
+
+    const me = await ctx.api.getMe();
+    const deepLink = LinkService.getBotDeepLink(me.username || '', channel.startPayload);
+
+    const text =
+      `✨ <b>Fresh Short Link Generated!</b>\n\n` +
+      `📢 <b>Channel:</b> <b>${escapeHtml(channel.title)}</b>\n\n` +
+      `1️⃣ <b>Short Bot Deep-Link (Click to copy):</b>\n` +
+      `<code>${deepLink}</code>\n\n` +
+      `2️⃣ <b>Direct Channel Request Link:</b>\n` +
+      `<code>${channel.inviteLink || 'Not available'}</code>`;
+
+    await ctx.editMessageText(text, {
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true },
+      reply_markup: AdminKeyboards.linksMenu(channel.channelId),
     });
     return;
   }

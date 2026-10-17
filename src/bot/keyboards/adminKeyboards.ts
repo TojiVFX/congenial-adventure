@@ -57,6 +57,16 @@ export class AdminKeyboards {
   }
 
   /**
+   * Links Menu with Regenerate Action
+   */
+  static linksMenu(channelId: number): InlineKeyboard {
+    return new InlineKeyboard()
+      .text('🔄 Generate New Short Link', `regen_link_${channelId}`)
+      .row()
+      .text('🔙 Back to Channel', `channel_view_${channelId}`);
+  }
+
+  /**
    * Back button to Main Dashboard
    */
   static backToHome(): InlineKeyboard {

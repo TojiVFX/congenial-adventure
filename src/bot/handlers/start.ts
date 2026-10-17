@@ -37,20 +37,21 @@ export async function handleStart(ctx: Context): Promise<void> {
   // 3. If no payload, send standard bot greeting
   if (!payload || !payload.trim()) {
     const text =
-      `👋 <b>Hello, ${escapeHtml(from.first_name)}!</b>\n\n` +
-      `Welcome to the <b>Auto Request Approval Bot</b>.\n\n` +
-      `⚡ This bot automatically handles channel join requests and manages member approvals effortlessly.\n\n` +
-      `If you are an administrator, use /admin to access your management dashboard.`;
+      `👋 <b>Welcome, ${escapeHtml(from.first_name)}!</b>\n\n` +
+      `⚡ <b>Auto-Approval Gateway</b>\n` +
+      `Automated channel request verification and instant access.\n\n` +
+      `• <b>Joining a Channel?</b> Click the invitation link provided by the community owner.\n` +
+      `• <b>Administrator?</b> Send /admin to access your Control Dashboard.`;
 
     await ctx.reply(text, { parse_mode: 'HTML' });
     return;
   }
 
-  // 4. Resolve Channel from Deep-Link Payload (e.g. BQADAQADfQ8AAtFDkEYjVw5S-EXRHhYE)
+  // 4. Resolve Channel from Deep-Link Payload (e.g. inv_bcibiv)
   const channel = await LinkService.resolveChannelFromPayload(payload);
   if (!channel) {
     await ctx.reply(
-      `⚠️ <b>Invalid or Expired Link</b>\n\nThe link you clicked does not correspond to an active channel. Please verify with the channel administrator.`,
+      `⚠️ <b>Invalid or Expired Link</b>\n\nThe invitation link you followed is no longer active. Please request a new link from the channel administrator.`,
       { parse_mode: 'HTML' }
     );
     return;
@@ -60,7 +61,7 @@ export async function handleStart(ctx: Context): Promise<void> {
   const isMember = await ChannelService.isUserMember(ctx as any, channel.channelId, from.id);
   if (isMember) {
     await ctx.reply(
-      `✅ You are already a member of <b>${escapeHtml(channel.title)}</b>!\n\nFeel free to open the channel anytime.`,
+      `✅ <b>Already a Member</b>\n\nYou are already a member of <b>${escapeHtml(channel.title)}</b>.\nFeel free to open the channel anytime.`,
       { parse_mode: 'HTML' }
     );
     return;
@@ -68,14 +69,15 @@ export async function handleStart(ctx: Context): Promise<void> {
 
   // 6. Present the Join Request Button to the user
   const inviteLink = channel.inviteLink || `https://t.me/${channel.username || ''}`;
-  const keyboard = new InlineKeyboard().url('👉 Request to Join Channel', inviteLink);
+  const keyboard = new InlineKeyboard().url('🚀 Request to Join Channel', inviteLink);
 
   const greeting = channel.welcomeMessage
     ? `${channel.welcomeMessage}\n\n`
-    : `Click the button below to send your join request. Our bot will process it automatically!`;
+    : `Tap the button below to submit your join request. You will be approved automatically!`;
 
   const replyText =
-    `📢 <b>Join ${escapeHtml(channel.title)}</b>\n\n` +
+    `✨ <b>Channel Invitation</b>\n\n` +
+    `You have been invited to join <b>${escapeHtml(channel.title)}</b>.\n\n` +
     `${greeting}`;
 
   await ctx.reply(replyText, {
