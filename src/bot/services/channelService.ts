@@ -83,15 +83,27 @@ export class ChannelService {
     try {
       let channel = await Channel.findOne({ channelId });
 
-      // Generate short clean start payload and Telegram invite link
+      // Generate short clean start payload, Telegram join-request link, and normal preview link
       const startPayload = LinkService.generateStartPayload(8);
       const inviteLink = await LinkService.getOrCreateChannelInviteLink(bot, channelId, validation.title);
+      let normalLink: string | undefined;
+      try {
+        normalLink = await LinkService.getOrCreateNormalChannelLink(
+          bot,
+          channelId,
+          validation.title,
+          validation.username
+        );
+      } catch {
+        if (validation.username) normalLink = `https://t.me/${validation.username.replace(/^@/, '')}`;
+      }
 
       if (!channel) {
         channel = await Channel.create({
           channelId,
           title: validation.title,
           username: validation.username,
+          normalLink,
           inviteLink,
           startPayload,
           autoApproveEnabled: true,
@@ -104,6 +116,7 @@ export class ChannelService {
       } else {
         channel.title = validation.title;
         channel.username = validation.username;
+        channel.normalLink = normalLink;
         channel.inviteLink = inviteLink;
         channel.status = 'approved';
         if (addedBy) {
@@ -126,6 +139,7 @@ export class ChannelService {
 
   /**
    * Submits a user's channel for admin approval (status: 'pending')
+   * Generates a normal direct link for preview, NOT a join-request link.
    */
   static async submitUserChannel(
     botOrApi: Bot | Api | { api: Api },
@@ -150,37 +164,56 @@ export class ChannelService {
             error: 'This channel has already been submitted and is currently pending administrator review.',
           };
         }
+
+        // Generate normal direct link for review (not a join-request link)
+        let normalLink: string | undefined;
+        try {
+          normalLink = await LinkService.getOrCreateNormalChannelLink(
+            botOrApi,
+            channelId,
+            validation.title,
+            validation.username
+          );
+        } catch {
+          if (validation.username) {
+            normalLink = `https://t.me/${validation.username.replace(/^@/, '')}`;
+          }
+        }
+
         // If rejected, re-submit
         channel.status = 'pending';
         channel.title = validation.title;
         channel.username = validation.username;
+        channel.normalLink = normalLink || channel.normalLink;
         channel.addedByUserId = user.id;
         channel.addedByUserName = user.name;
         channel.addedByUserUsername = user.username;
-        if (!channel.inviteLink) {
-          try {
-            channel.inviteLink = await LinkService.getOrCreateChannelInviteLink(botOrApi, channelId, validation.title);
-          } catch {
-            if (validation.username) channel.inviteLink = `https://t.me/${validation.username}`;
-          }
-        }
         await channel.save();
         return { success: true, channel };
       }
 
       const startPayload = LinkService.generateStartPayload(8);
-      let inviteLink: string | undefined;
+
+      // Generate normal direct link for review (not a join-request link)
+      let normalLink: string | undefined;
       try {
-        inviteLink = await LinkService.getOrCreateChannelInviteLink(botOrApi, channelId, validation.title);
+        normalLink = await LinkService.getOrCreateNormalChannelLink(
+          botOrApi,
+          channelId,
+          validation.title,
+          validation.username
+        );
       } catch {
-        if (validation.username) inviteLink = `https://t.me/${validation.username}`;
+        if (validation.username) {
+          normalLink = `https://t.me/${validation.username.replace(/^@/, '')}`;
+        }
       }
 
       channel = await Channel.create({
         channelId,
         title: validation.title,
         username: validation.username,
-        inviteLink,
+        normalLink,
         startPayload,
         autoApproveEnabled: true,
         status: 'pending',

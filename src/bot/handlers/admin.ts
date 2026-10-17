@@ -211,17 +211,21 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
       ? `<a href="tg://user?id=${channel.addedByUserId}">${escapeHtml(channel.addedByUserName)}</a> (<code>${channel.addedByUserId}</code>)`
       : '<i>ɴᴏᴛ ʀᴇɢɪsᴛᴇʀᴇᴅ</i>';
 
+    const normalLinkDisplay =
+      channel.normalLink || (channel.username ? `https://t.me/${channel.username.replace(/^@/, '')}` : undefined);
+
     const text =
       `📢 <b>ᴄʜᴀɴɴᴇʟ: ${escapeHtml(channel.title)}</b>\n\n` +
       `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
-      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username}` : '<i>ᴘʀɪᴠᴀᴛᴇ</i>'}\n` +
+      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username.replace(/^@/, '')}` : '<i>ᴘʀɪᴠᴀᴛᴇ</i>'}\n` +
+      (normalLinkDisplay ? `• <b>ɴᴏʀᴍᴀʟ ʟɪɴᴋ:</b> ${normalLinkDisplay}\n` : '') +
       `• <b>ᴀᴅᴅᴇᴅ ʙʏ:</b> ${ownerDisplay}\n` +
       `• <b>sᴛᴀᴛᴜs:</b> ${approvalStatusText}\n` +
       `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ:</b> ${statusText}\n` +
       `• <b>ᴛᴏᴛᴀʟ ʀᴇǫᴜᴇsᴛs:</b> <code>${channel.totalRequests || 0}</code>\n` +
       `• <b>ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${channel.totalApproved || 0}</code>\n\n` +
       `🔗 <b>sʜᴏʀᴛ ʙᴏᴛ ʟɪɴᴋ:</b>\n<code>${deepLink}</code>\n\n` +
-      `📨 <b>ᴅɪʀᴇᴄᴛ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b>\n<code>${channel.inviteLink || 'ɴᴏᴛ ɢᴇɴᴇʀᴀᴛᴇᴅ'}</code>\n\n` +
+      `📨 <b>ᴊᴏɪɴ-ʀᴇǫᴜᴇsᴛ ʟɪɴᴋ:</b>\n<code>${channel.inviteLink || normalLinkDisplay || 'ɴᴏᴛ ɢᴇɴᴇʀᴀᴛᴇᴅ'}</code>\n\n` +
       `<i>👉 ᴛᴀᴘ ᴛʜᴇ ᴄᴏᴘʏ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ɪɴsᴛᴀɴᴛʟʏ ᴄᴏᴘʏ ᴛʜᴇ ʟɪɴᴋ.</i>`;
 
     await ctx.editMessageText(text, {

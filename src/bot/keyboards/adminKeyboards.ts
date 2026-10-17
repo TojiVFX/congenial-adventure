@@ -60,8 +60,12 @@ export class AdminKeyboards {
     // If deepLink is provided, add premium 1-tap copy button
     if (deepLink) {
       kb.copyText('📋 ᴄᴏᴘʏ ʙᴏᴛ ʟɪɴᴋ', deepLink);
-      if (channel.inviteLink) {
-        kb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', channel.inviteLink);
+      const copyChannel =
+        channel.inviteLink ||
+        channel.normalLink ||
+        (channel.username ? `https://t.me/${channel.username.replace(/^@/, '')}` : undefined);
+      if (copyChannel) {
+        kb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', copyChannel);
       }
       kb.row();
     }

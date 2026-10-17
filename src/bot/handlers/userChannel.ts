@@ -128,15 +128,20 @@ function renderUserChannelDetail(
     ? '✅ <b>ᴇɴᴀʙʟᴇᴅ (ɪɴsᴛᴀɴᴛ ᴀᴘᴘʀᴏᴠᴀʟ)</b>'
     : '⏸️ <b>ᴅɪsᴀʙʟᴇᴅ (ᴍᴀɴᴜᴀʟ ʀᴇᴠɪᴇᴡ)</b>';
 
+  const normalLink =
+    channel.normalLink || (channel.username ? `https://t.me/${channel.username.replace(/^@/, '')}` : undefined);
+  const channelLinkDisplay = channel.inviteLink || normalLink || 'Generating...';
+
   const text =
     `📢 <b>${escapeHtml(channel.title)}</b>\n\n` +
     `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
-    `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username}` : '<i>ɴᴏɴᴇ</i>'}\n` +
+    `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username.replace(/^@/, '')}` : '<i>ɴᴏɴᴇ</i>'}\n` +
+    (normalLink ? `• <b>ɴᴏʀᴍᴀʟ ʟɪɴᴋ:</b> ${normalLink}\n` : '') +
     `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ:</b> ${statusLabel}\n` +
     `• <b>ᴛᴏᴛᴀʟ ʀᴇǫᴜᴇsᴛs:</b> <code>${channel.totalRequests || 0}</code>\n` +
     `• <b>ᴛᴏᴛᴀʟ ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${channel.totalApproved || 0}</code>\n\n` +
     `🔗 <b>ʙᴏᴛ ᴅᴇᴇᴘ-ʟɪɴᴋ:</b>\n<code>${botDeepLink}</code>\n\n` +
-    `📨 <b>ᴄʜᴀɴɴᴇʟ ɪɴᴠɪᴛᴇ ʟɪɴᴋ:</b>\n<code>${channel.inviteLink || 'Generating...'}</code>`;
+    `📨 <b>ᴄʜᴀɴɴᴇʟ ɪɴᴠɪᴛᴇ ʟɪɴᴋ:</b>\n<code>${channelLinkDisplay}</code>`;
 
   const toggleBtnText = channel.autoApproveEnabled
     ? '⏸️ ᴅɪsᴀʙʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ'
@@ -148,8 +153,9 @@ function renderUserChannelDetail(
 
   // Premium 1-tap copy buttons
   kb.copyText('📋 ᴄᴏᴘʏ ʙᴏᴛ ʟɪɴᴋ', botDeepLink);
-  if (channel.inviteLink) {
-    kb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', channel.inviteLink);
+  const copyTarget = channel.inviteLink || normalLink;
+  if (copyTarget) {
+    kb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', copyTarget);
   }
   kb.row();
 
@@ -350,14 +356,23 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
     const chanDbId = data.split(':')[1];
     const channel = await Channel.findById(chanDbId);
 
+    const normalLink =
+      channel?.normalLink ||
+      (channel?.username ? `https://t.me/${channel.username.replace(/^@/, '')}` : undefined);
+
     const text =
       `⏳ <b>ᴄʜᴀɴɴᴇʟ ᴘᴇɴᴅɪɴɢ ʀᴇᴠɪᴇᴡ</b>\n\n` +
       `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel?.title || 'Your Channel')}</b>\n` +
+      `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel?.channelId || 'N/A'}</code>\n` +
+      (normalLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> <code>${normalLink}</code>\n` : '') +
       `• <b>sᴛᴀᴛᴜs:</b> ⏳ <b>ᴜɴᴅᴇʀ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ʀᴇᴠɪᴇᴡ</b>\n\n` +
       `ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴀs ʙᴇᴇɴ sᴜʙᴍɪᴛᴛᴇᴅ ᴀɴᴅ ɪs ᴡᴀɪᴛɪɴɢ ғᴏʀ ᴀᴘᴘʀᴏᴠᴀʟ. ʏᴏᴜ ᴡɪʟʟ ʀᴇᴄᴇɪᴠᴇ ᴀ ɴᴏᴛɪғɪᴄᴀᴛɪᴏɴ ʜᴇʀᴇ ᴀs sᴏᴏɴ ᴀs ɪᴛ ɪs ᴀᴄᴄᴇᴘᴛᴇᴅ!`;
 
-    const kb = new InlineKeyboard()
-      .text('🗑️ ᴄᴀɴᴄᴇʟ ʀᴇǫᴜᴇsᴛ', `user_chan_del_confirm:${chanDbId}`)
+    const kb = new InlineKeyboard();
+    if (normalLink) {
+      kb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalLink).row();
+    }
+    kb.text('🗑️ ᴄᴀɴᴄᴇʟ ʀᴇǫᴜᴇsᴛ', `user_chan_del_confirm:${chanDbId}`)
       .row()
       .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
 
@@ -489,23 +504,60 @@ export async function handleUserChannelInput(ctx: Context): Promise<boolean> {
   await clearAdminSession(from.id);
 
   // Edit in place to show success!
-  const channelLink = result.channel.inviteLink || (result.channel.username ? `https://t.me/${result.channel.username}` : undefined);
+  const normalChannelLink =
+    result.channel.normalLink ||
+    (result.channel.username ? `https://t.me/${result.channel.username.replace(/^@/, '')}` : undefined);
 
   const successText =
     `⏳ <b>ʀᴇǫᴜᴇsᴛ sᴜʙᴍɪᴛᴛᴇᴅ ғᴏʀ ʀᴇᴠɪᴇᴡ!</b>\n\n` +
     `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(result.channel.title)}</b>\n` +
     `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${result.channel.channelId}</code>\n` +
-    (channelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> <code>${channelLink}</code>\n\n` : '\n') +
+    (normalChannelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> <code>${normalChannelLink}</code>\n\n` : '\n') +
     `ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴀs ʙᴇᴇɴ sᴜʙᴍɪᴛᴛᴇᴅ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n` +
     `ʏᴏᴜ ᴡɪʟʟ ʀᴇᴄᴇɪᴠᴇ ᴀ ɴᴏᴛɪғɪᴄᴀᴛɪᴏɴ ʜᴇʀᴇ ᴀs sᴏᴏɴ ᴀs ɪᴛ ɪs ᴀᴄᴄᴇᴘᴛᴇᴅ.`;
 
-  const viewKb = new InlineKeyboard().text('⚙️ ᴠɪᴇᴡ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
+  const viewKb = new InlineKeyboard();
+  if (normalChannelLink) {
+    viewKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).row();
+  }
+  viewKb.text('⚙️ ᴠɪᴇᴡ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
   await editOrReply(ctx, chatId, promptMessageId, successText, { parse_mode: 'HTML', reply_markup: viewKb });
 
   // Dispatch interactive approval card to admins and log channel
   await sendChannelApprovalRequestToAdmins(ctx, result.channel);
 
   return true;
+}
+
+/**
+ * Resolves a normal direct channel link (public username or creates_join_request: false).
+ * Ensures administrators and reviewers can inspect the channel directly without sending a join request.
+ */
+async function resolveNormalChannelLink(
+  ctx: Context,
+  channel: IChannel
+): Promise<string | undefined> {
+  if (channel.normalLink) return channel.normalLink;
+  if (channel.username) {
+    const link = `https://t.me/${channel.username.replace(/^@/, '')}`;
+    channel.normalLink = link;
+    channel.save().catch(() => {});
+    return link;
+  }
+  try {
+    const link = await LinkService.getOrCreateNormalChannelLink(
+      ctx as any,
+      channel.channelId,
+      channel.title,
+      channel.username
+    );
+    channel.normalLink = link;
+    channel.save().catch(() => {});
+    return link;
+  } catch (err) {
+    console.warn(`[resolveNormalChannelLink] Could not create normal link for ${channel.channelId}:`, err);
+    return channel.inviteLink;
+  }
 }
 
 /**
@@ -517,14 +569,14 @@ async function sendChannelApprovalRequestToAdmins(
 ): Promise<void> {
   const from = ctx.from!;
   const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
-  const channelLink = channel.inviteLink || (channel.username ? `https://t.me/${channel.username}` : undefined);
+  const normalChannelLink = await resolveNormalChannelLink(ctx, channel);
 
   const adminText =
     `📢 <b>ɴᴇᴡ ᴄʜᴀɴɴᴇʟ ᴀᴘᴘʀᴏᴠᴀʟ ʀᴇǫᴜᴇsᴛ</b>\n\n` +
     `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b>\n` +
     `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
-    `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username}` : '<i>ɴᴏɴᴇ</i>'}\n` +
-    (channelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> ${channelLink}\n` : '') +
+    `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username.replace(/^@/, '')}` : '<i>ɴᴏɴᴇ</i>'}\n` +
+    (normalChannelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> ${normalChannelLink}\n` : '') +
     `• <b>sᴜʙᴍɪᴛᴛᴇᴅ ʙʏ:</b> <a href="tg://user?id=${from.id}">${escapeHtml(from.first_name)}</a> (<code>${from.id}</code>)\n` +
     `• <b>ᴜsᴇʀ ʜᴀɴᴅʟᴇ:</b> ${from.username ? `@${from.username}` : '<i>ɴᴏɴᴇ</i>'}\n` +
     `• <b>ᴛɪᴍᴇ:</b> <code>${time} UTC</code>\n` +
@@ -532,8 +584,8 @@ async function sendChannelApprovalRequestToAdmins(
     `ᴘʟᴇᴀsᴇ ʀᴇᴠɪᴇᴡ ᴛʜɪs ʀᴇǫᴜᴇsᴛ ᴀɴᴅ ᴀᴄᴄᴇᴘᴛ ᴏʀ ʀᴇᴊᴇᴄᴛ:`;
 
   const approvalKb = new InlineKeyboard();
-  if (channelLink) {
-    approvalKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', channelLink).row();
+  if (normalChannelLink) {
+    approvalKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).row();
   }
   approvalKb
     .text('✅ ᴀᴄᴄᴇᴘᴛ', `admin_approve_chan:${channel._id}`)
@@ -624,26 +676,32 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
 
     await ctx.answerCallbackQuery({ text: 'Channel approved successfully!' });
 
-    // 2. Update Admin notification message: display approved banner and remove buttons
-    const approvedChannelLink = channel.inviteLink || (channel.username ? `https://t.me/${channel.username}` : undefined);
+    // 2. Update Admin notification message: display approved banner and keep normal view channel button
+    const normalChannelLink = await resolveNormalChannelLink(ctx, channel);
     const updatedAdminText =
       `📢 <b>ᴄʜᴀɴɴᴇʟ ᴀᴘᴘʀᴏᴠᴀʟ ʀᴇǫᴜᴇsᴛ</b>\n\n` +
       `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b>\n` +
       `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
-      (approvedChannelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> ${approvedChannelLink}\n` : '') +
+      (normalChannelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> ${normalChannelLink}\n` : '') +
       `• <b>sᴜʙᴍɪᴛᴛᴇᴅ ʙʏ:</b> <a href="tg://user?id=${channel.addedByUserId}">${escapeHtml(channel.addedByUserName || 'User')}</a> (<code>${channel.addedByUserId}</code>)\n` +
       `• <b>sᴛᴀᴛᴜs:</b> ✅ <b>ᴀᴘᴘʀᴏᴠᴇᴅ ʙʏ ${escapeHtml(from.first_name)}</b>`;
+
+    const updatedAdminKb = new InlineKeyboard();
+    if (normalChannelLink) {
+      updatedAdminKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink);
+    }
 
     try {
       await ctx.editMessageText(updatedAdminText, {
         parse_mode: 'HTML',
-        reply_markup: new InlineKeyboard(),
+        reply_markup: updatedAdminKb,
       });
     } catch {}
 
     // 3. Notify Channel Owner with links and 1-tap copy buttons
     if (channel.addedByUserId) {
       const botDeepLink = LinkService.getBotDeepLink(botUsername, channel.startPayload);
+      const channelLinkToCopy = channel.inviteLink || normalChannelLink || '';
 
       const ownerText =
         `🎉 <b>ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴀs ʙᴇᴇɴ ᴀᴘᴘʀᴏᴠᴇᴅ!</b>\n\n` +
@@ -651,15 +709,15 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
         `🔗 <b>ʏᴏᴜʀ ʙᴏᴛ ɪɴᴠɪᴛᴇ ʟɪɴᴋ:</b>\n` +
         `<code>${botDeepLink}</code>\n\n` +
         `📨 <b>ᴄʜᴀɴɴᴇʟ ɪɴᴠɪᴛᴇ ʟɪɴᴋ:</b>\n` +
-        `<code>${channel.inviteLink || ''}</code>\n\n` +
+        `<code>${channelLinkToCopy}</code>\n\n` +
         `ʏᴏᴜ ᴄᴀɴ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ, ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ, ᴏʀ ᴄʀᴇᴀᴛᴇ ɴᴇᴡ ʟɪɴᴋs ᴀɴʏᴛɪᴍᴇ ᴠɪᴀ /managechat.`;
 
       const ownerKb = new InlineKeyboard()
         .copyText('📋 ᴄᴏᴘʏ ʙᴏᴛ ʟɪɴᴋ', botDeepLink)
         .row();
 
-      if (channel.inviteLink) {
-        ownerKb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', channel.inviteLink).row();
+      if (channelLinkToCopy) {
+        ownerKb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', channelLinkToCopy).row();
       }
 
       ownerKb.text('⚙️ ᴍᴀɴᴀɢᴇ ᴄʜᴀɴɴᴇʟ', `user_chan_view:${channel._id}`);
@@ -688,17 +746,24 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
     await ctx.answerCallbackQuery({ text: 'Channel rejected.' });
 
     // Update Admin notification message
+    const normalChannelLink = await resolveNormalChannelLink(ctx, channel);
     const updatedAdminText =
       `📢 <b>ᴄʜᴀɴɴᴇʟ ᴀᴘᴘʀᴏᴠᴀʟ ʀᴇǫᴜᴇsᴛ</b>\n\n` +
       `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b>\n` +
       `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
+      (normalChannelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> ${normalChannelLink}\n` : '') +
       `• <b>sᴜʙᴍɪᴛᴛᴇᴅ ʙʏ:</b> <a href="tg://user?id=${channel.addedByUserId}">${escapeHtml(channel.addedByUserName || 'User')}</a> (<code>${channel.addedByUserId}</code>)\n` +
       `• <b>sᴛᴀᴛᴜs:</b> ❌ <b>ʀᴇᴊᴇᴄᴛᴇᴅ ʙʏ ${escapeHtml(from.first_name)}</b>`;
+
+    const updatedAdminKb = new InlineKeyboard();
+    if (normalChannelLink) {
+      updatedAdminKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink);
+    }
 
     try {
       await ctx.editMessageText(updatedAdminText, {
         parse_mode: 'HTML',
-        reply_markup: new InlineKeyboard(),
+        reply_markup: updatedAdminKb,
       });
     } catch {}
 

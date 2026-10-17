@@ -54,6 +54,47 @@ export class LinkService {
   }
 
   /**
+   * Creates or resolves a normal direct channel link (public username or creates_join_request: false).
+   * This link allows administrators and reviewers to preview channel content directly without sending a join request.
+   */
+  static async getOrCreateNormalChannelLink(
+    botOrApi: Bot | Api | { api: Api },
+    channelId: number,
+    channelTitle: string,
+    username?: string
+  ): Promise<string> {
+    if (username) {
+      const cleanUser = username.replace(/^@/, '');
+      return `https://t.me/${cleanUser}`;
+    }
+
+    const api: Api =
+      'api' in botOrApi && (botOrApi as any).api
+        ? ((botOrApi as any).api as Api)
+        : (botOrApi as Api);
+
+    try {
+      const inviteLinkObj = await api.createChatInviteLink(channelId, {
+        name: `Norm_${channelTitle.substring(0, 12).replace(/[^\w\s]/gi, '')}`,
+        creates_join_request: false,
+      });
+      return inviteLinkObj.invite_link;
+    } catch (error) {
+      console.warn(
+        `[LinkService] createChatInviteLink(creates_join_request: false) failed for ${channelId}, attempting exportChatInviteLink:`,
+        error
+      );
+      try {
+        const exported = await api.exportChatInviteLink(channelId);
+        return exported;
+      } catch (exportErr) {
+        console.error(`[LinkService] Failed to export normal invite link for channel ${channelId}:`, exportErr);
+        throw exportErr;
+      }
+    }
+  }
+
+  /**
    * Resolves a channel from a start payload.
    * Supports short 'inv_...' codes, prefix-less codes, and legacy fallbacks.
    */

@@ -4,6 +4,7 @@ export interface IChannel extends Document {
   channelId: number;
   title: string;
   username?: string;
+  normalLink?: string;
   inviteLink?: string;
   startPayload: string;
   autoApproveEnabled: boolean;
@@ -24,6 +25,7 @@ const ChannelSchema: Schema = new Schema(
     channelId: { type: Number, required: true, unique: true, index: true },
     title: { type: String, required: true },
     username: { type: String },
+    normalLink: { type: String },
     inviteLink: { type: String },
     startPayload: { type: String, required: true, unique: true, index: true },
     autoApproveEnabled: { type: Boolean, default: true },
