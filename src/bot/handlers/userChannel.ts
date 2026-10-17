@@ -11,6 +11,7 @@ import { ChannelService } from '../services/channelService.js';
 import { LinkService } from '../services/linkService.js';
 import { LoggerService } from '../services/loggerService.js';
 import { isAdmin } from './admin.js';
+import { handleContactCommand } from './contact.js';
 
 /**
  * Helper to edit existing prompt message or fallback to reply
@@ -188,6 +189,13 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
     }
     const { text, keyboard } = renderUserChannelList(channels);
     await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: keyboard });
+    return;
+  }
+
+  // 1b. Contact admin flow from inline button
+  if (data === 'user_chan_contact') {
+    await ctx.answerCallbackQuery();
+    await handleContactCommand(ctx);
     return;
   }
 

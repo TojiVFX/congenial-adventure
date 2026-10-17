@@ -21,16 +21,30 @@ export async function handleContactCommand(ctx: Context): Promise<void> {
   }
 
   // Otherwise, set session and prompt user for details
-  const promptMsg = await ctx.reply(
+  const promptText =
     `📩 <b>ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ</b>\n\n` +
     `ᴘʟᴇᴀsᴇ sᴇɴᴅ ʏᴏᴜʀ <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ, ᴜsᴇʀɴᴀᴍᴇ, ᴏʀ ᴍᴇssᴀɢᴇ</b> ʙᴇʟᴏᴡ.\n` +
     `ʏᴏᴜ ᴄᴀɴ ᴀʟsᴏ ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ ғʀᴏᴍ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴇʀᴇ.\n\n` +
-    `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`,
-    { parse_mode: 'HTML' }
-  );
+    `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`;
+
+  const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'user_chan_list');
+
+  let promptMessageId: number;
+  if (ctx.callbackQuery) {
+    try {
+      await ctx.editMessageText(promptText, { parse_mode: 'HTML', reply_markup: cancelKb });
+      promptMessageId = ctx.callbackQuery.message?.message_id || 0;
+    } catch {
+      const promptMsg = await ctx.reply(promptText, { parse_mode: 'HTML', reply_markup: cancelKb });
+      promptMessageId = promptMsg.message_id;
+    }
+  } else {
+    const promptMsg = await ctx.reply(promptText, { parse_mode: 'HTML', reply_markup: cancelKb });
+    promptMessageId = promptMsg.message_id;
+  }
 
   await setAdminSession(from.id, 'WAITING_USER_CONTACT', {
-    promptMessageId: promptMsg.message_id,
+    promptMessageId,
     chatId: ctx.chat?.id,
   });
 }

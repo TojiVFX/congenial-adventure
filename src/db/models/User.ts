@@ -7,6 +7,8 @@ export interface IUser extends Document {
   lastName?: string;
   sourcePayload?: string;
   isBanned: boolean;
+  totalStarts: number;
+  lastActiveAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +21,8 @@ const UserSchema: Schema = new Schema(
     lastName: { type: String },
     sourcePayload: { type: String },
     isBanned: { type: Boolean, default: false },
+    totalStarts: { type: Number, default: 1 },
+    lastActiveAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );

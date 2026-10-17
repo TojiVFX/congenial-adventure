@@ -9,47 +9,89 @@ export async function handleStart(ctx: Context): Promise<void> {
   if (!from) return;
 
   const payload = ctx.match as string | undefined;
+  const cleanPayload = payload?.trim() || undefined;
+
+  let isNewUser = false;
 
   // 1. Record or update user in database
   try {
-    await User.findOneAndUpdate(
-      { userId: from.id },
-      {
+    const existingUser = await User.findOne({ userId: from.id });
+
+    if (!existingUser) {
+      isNewUser = true;
+      await User.create({
         userId: from.id,
         firstName: from.first_name,
         lastName: from.last_name,
         username: from.username,
-        sourcePayload: payload || undefined,
-      },
-      { upsert: true, new: true }
-    );
+        sourcePayload: cleanPayload,
+        totalStarts: 1,
+        lastActiveAt: new Date(),
+      });
+    } else {
+      isNewUser = false;
+      existingUser.firstName = from.first_name;
+      existingUser.lastName = from.last_name;
+      existingUser.username = from.username;
+      existingUser.totalStarts = (existingUser.totalStarts || 1) + 1;
+      existingUser.lastActiveAt = new Date();
+      if (cleanPayload && !existingUser.sourcePayload) {
+        existingUser.sourcePayload = cleanPayload;
+      }
+      await existingUser.save();
+    }
   } catch (err) {
     console.error('[handleStart] Failed to record user:', err);
   }
 
-  // 2. Notify Log Channel
-  ctx.api && LoggerService.logUserStart(ctx as any, {
-    id: from.id,
-    firstName: from.first_name,
-    username: from.username,
-  }, payload);
+  // 2. Notify Log Channel ONLY for genuinely NEW users who started the bot for the first time
+  if (isNewUser) {
+    try {
+      ctx.api && (await LoggerService.logUserStart(
+        ctx as any,
+        {
+          id: from.id,
+          firstName: from.first_name,
+          username: from.username,
+        },
+        cleanPayload
+      ));
+    } catch (logErr) {
+      console.warn('[handleStart] Failed to log new user start:', logErr);
+    }
+  }
 
-  // 3. If no payload, send standard bot greeting
-  if (!payload || !payload.trim()) {
-    const text =
-      `👋 <b>ᴡᴇʟᴄᴏᴍᴇ, ${escapeHtml(from.first_name)}!</b>\n\n` +
-      `⚡ <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ɢᴀᴛᴇᴡᴀʏ</b>\n` +
-      `ᴛʜɪs ʙᴏᴛ ᴘʀᴏᴠɪᴅᴇs ᴀᴜᴛᴏᴍᴀᴛᴇᴅ, ɪɴsᴛᴀɴᴛ ᴍᴇᴍʙᴇʀsʜɪᴘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ғᴏʀ ᴘʀɪᴠᴀᴛᴇ ᴄᴏᴍᴍᴜɴɪᴛɪᴇs.\n\n` +
-      `• <b>ᴊᴏɪɴɪɴɢ ᴀ ᴄʜᴀɴɴᴇʟ?</b> ᴄʟɪᴄᴋ ᴛʜᴇ ɪɴᴠɪᴛᴀᴛɪᴏɴ ʟɪɴᴋ ᴘʀᴏᴠɪᴅᴇᴅ ʙʏ ʏᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ.\n` +
-      `• <b>ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ?</b> sᴇɴᴅ /managechat ᴛᴏ ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴏʀ ᴄᴏᴘʏ ʟɪɴᴋs.\n` +
-      `• <b>ɴᴇᴇᴅ ᴀssɪsᴛᴀɴᴄᴇ?</b> sᴇɴᴅ /contact ᴛᴏ ʀᴇᴀᴄʜ ᴏᴜᴛ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.`;
+  // 3. If no payload, send appropriate bot greeting
+  if (!cleanPayload) {
+    let text: string;
+    const kb = new InlineKeyboard()
+      .text('⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list')
+      .text('📩 ᴄᴏɴᴛᴀᴄᴛ', 'user_chan_contact');
 
-    await ctx.reply(text, { parse_mode: 'HTML' });
+    if (isNewUser) {
+      text =
+        `👋 <b>ᴡᴇʟᴄᴏᴍᴇ, ${escapeHtml(from.first_name)}!</b>\n\n` +
+        `⚡ <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ɢᴀᴛᴇᴡᴀʏ</b>\n` +
+        `ᴛʜɪs ʙᴏᴛ ᴘʀᴏᴠɪᴅᴇs ᴀᴜᴛᴏᴍᴀᴛᴇᴅ, ɪɴsᴛᴀɴᴛ ᴍᴇᴍʙᴇʀsʜɪᴘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ғᴏʀ ᴘʀɪᴠᴀᴛᴇ ᴄᴏᴍᴍᴜɴɪᴛɪᴇs.\n\n` +
+        `• <b>ᴊᴏɪɴɪɴɢ ᴀ ᴄʜᴀɴɴᴇʟ?</b> ᴄʟɪᴄᴋ ᴛʜᴇ ɪɴᴠɪᴛᴀᴛɪᴏɴ ʟɪɴᴋ ᴘʀᴏᴠɪᴅᴇᴅ ʙʏ ʏᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ.\n` +
+        `• <b>ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ?</b> sᴇɴᴅ /managechat ᴛᴏ ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴏʀ ᴄᴏᴘʏ ʟɪɴᴋs.\n` +
+        `• <b>ɴᴇᴇᴅ ᴀssɪsᴛᴀɴᴄᴇ?</b> sᴇɴᴅ /contact ᴛᴏ ʀᴇᴀᴄʜ ᴏᴜᴛ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.`;
+    } else {
+      text =
+        `👋 <b>ᴡᴇʟᴄᴏᴍᴇ ʙᴀᴄᴋ, ${escapeHtml(from.first_name)}!</b>\n\n` +
+        `⚡ <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ɢᴀᴛᴇᴡᴀʏ</b>\n` +
+        `ʏᴏᴜ ᴀʀᴇ ᴀʟʀᴇᴀᴅʏ ʀᴇɢɪsᴛᴇʀᴇᴅ ᴡɪᴛʜ ᴛʜᴇ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ sʏsᴛᴇᴍ.\n\n` +
+        `• <b>ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs:</b> sᴇɴᴅ /managechat ᴛᴏ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴄʜᴀɴɴᴇʟs.\n` +
+        `• <b>ɴᴇᴇᴅ ᴀssɪsᴛᴀɴᴄᴇ:</b> sᴇɴᴅ /contact ᴛᴏ ʀᴇᴀᴄʜ ᴏᴜᴛ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n` +
+        `• <b>ɢᴜɪᴅᴇ & ᴄᴏᴍᴍᴀɴᴅs:</b> sᴇɴᴅ /help ғᴏʀ ɪɴsᴛʀᴜᴄᴛɪᴏɴs.`;
+    }
+
+    await ctx.reply(text, { parse_mode: 'HTML', reply_markup: kb });
     return;
   }
 
   // 4. Resolve Channel from Deep-Link Payload (e.g. inv_bcibiv)
-  const channel = await LinkService.resolveChannelFromPayload(payload);
+  const channel = await LinkService.resolveChannelFromPayload(cleanPayload);
   if (!channel) {
     await ctx.reply(
       `⚠️ <b>Invalid or Expired Link</b>\n\nThe invitation link you followed is no longer active. Please request a new link from the channel administrator.`,
@@ -61,9 +103,15 @@ export async function handleStart(ctx: Context): Promise<void> {
   // 5. Check if user is already a member
   const isMember = await ChannelService.isUserMember(ctx as any, channel.channelId, from.id);
   if (isMember) {
+    const normalLink =
+      channel.normalLink || (channel.username ? `https://t.me/${channel.username.replace(/^@/, '')}` : undefined);
+    const openKb = new InlineKeyboard();
+    if (normalLink) {
+      openKb.url('📢 ᴏᴘᴇɴ ᴄʜᴀɴɴᴇʟ', normalLink);
+    }
     await ctx.reply(
       `✅ <b>Already a Member</b>\n\nYou are already a member of <b>${escapeHtml(channel.title)}</b>.\nFeel free to open the channel anytime.`,
-      { parse_mode: 'HTML' }
+      { parse_mode: 'HTML', reply_markup: openKb }
     );
     return;
   }
