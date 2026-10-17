@@ -11,6 +11,7 @@ export interface CommandDefinition {
 export const PUBLIC_COMMANDS: CommandDefinition[] = [
   { command: 'start', description: 'sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ & ɢᴇᴛ ɪɴᴠɪᴛᴇ ʟɪɴᴋ' },
   { command: 'managechat', description: 'ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs & ʟɪɴᴋs' },
+  { command: 'acceptall', description: 'ᴀᴄᴄᴇᴘᴛ ᴀʟʟ ᴘᴇɴᴅɪɴɢ ʀᴇǫᴜᴇsᴛs' },
   { command: 'help', description: 'ɢᴜɪᴅᴇ & ɪɴsᴛʀᴜᴄᴛɪᴏɴs ᴏɴ ʜᴏᴡ ᴛᴏ ᴜsᴇ' },
   { command: 'contact', description: 'ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ' },
 ];
@@ -20,6 +21,7 @@ export const ADMIN_COMMANDS: CommandDefinition[] = [
   { command: 'start', description: 'sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ' },
   { command: 'dashboard', description: 'ᴀᴅᴍɪɴ ᴄᴏɴᴛʀᴏʟ ᴅᴀsʜʙᴏᴀʀᴅ' },
   { command: 'managechat', description: 'ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs & ʟɪɴᴋs' },
+  { command: 'acceptall', description: 'ᴀᴄᴄᴇᴘᴛ ᴀʟʟ ᴘᴇɴᴅɪɴɢ ʀᴇǫᴜᴇsᴛs' },
   { command: 'help', description: 'ɢᴜɪᴅᴇ & ɪɴsᴛʀᴜᴄᴛɪᴏɴs' },
   { command: 'contact', description: 'ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ' },
 ];
