@@ -1,13 +1,16 @@
 import { Bot, webhookCallback } from 'grammy';
 import { config, validateConfig } from '../config.js';
 import { connectDB } from '../db/connection.js';
-import { handleStart } from './handlers/start.js';
+import { handleStart, handleHelp } from './handlers/start.js';
 import { handleChatJoinRequest } from './handlers/joinRequest.js';
 import {
   handleAdminCommand,
   handleAdminCallback,
   handleAdminInput,
 } from './handlers/admin.js';
+import { updateBotCommands } from './services/commandService.js';
+
+export { updateBotCommands };
 
 validateConfig();
 
@@ -25,6 +28,7 @@ bot.use(async (ctx, next) => {
 
 // Commands
 bot.command('start', handleStart);
+bot.command('help', handleHelp);
 bot.command(['admin', 'dashboard', 'panel'], handleAdminCommand);
 
 // Join Requests: Auto-Approval & Logging

@@ -37,6 +37,10 @@ export default async function (req: IncomingMessage, res: ServerResponse) {
       drop_pending_updates: false,
     });
 
+    // Auto-update Telegram Bot Command list menu
+    const { updateBotCommands } = await import('../src/bot/services/commandService.js');
+    const commandResult = await updateBotCommands(bot);
+
     const info = await bot.api.getWebhookInfo();
 
     res.statusCode = 200;
@@ -44,8 +48,10 @@ export default async function (req: IncomingMessage, res: ServerResponse) {
       JSON.stringify(
         {
           ok: true,
-          message: 'Webhook has been successfully configured!',
+          message: 'Webhook and Bot Commands have been successfully configured!',
           webhookUrl,
+          commandsUpdated: commandResult.success,
+          commandsCount: commandResult.count,
           webhookInfo: info,
         },
         null,

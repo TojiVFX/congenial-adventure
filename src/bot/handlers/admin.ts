@@ -13,6 +13,7 @@ import { AdminKeyboards } from '../keyboards/adminKeyboards.js';
 import { ChannelService } from '../services/channelService.js';
 import { LinkService } from '../services/linkService.js';
 import { LoggerService } from '../services/loggerService.js';
+import { updateBotCommands } from '../services/commandService.js';
 
 export async function isAdmin(userId: number): Promise<boolean> {
   if (config.adminIds.includes(userId)) return true;
@@ -395,6 +396,22 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
       `Please reply with the message you would like to broadcast (text, photo, markdown, HTML supported).\nSend /cancel to abort.`,
       { parse_mode: 'HTML' }
     );
+    return;
+  }
+
+  // 15. Auto-Update / Sync Telegram Commands
+  if (data === 'admin_sync_commands') {
+    const res = await updateBotCommands(ctx.api as any);
+    if (res.success) {
+      await ctx.reply(`✅ <b>Telegram Command Menu Updated!</b>\n\n${res.count} commands have been registered with Telegram and will now appear in the command menu for all users.`, {
+        parse_mode: 'HTML',
+        reply_markup: AdminKeyboards.backToHome(),
+      });
+    } else {
+      await ctx.reply(`❌ <b>Failed to update commands:</b> ${res.error}`, {
+        reply_markup: AdminKeyboards.backToHome(),
+      });
+    }
     return;
   }
 }

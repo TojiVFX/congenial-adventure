@@ -14,7 +14,9 @@ export class AdminKeyboards {
       .text('📋 Log Channel', 'admin_log_settings')
       .row()
       .text('📣 Broadcast Message', 'admin_broadcast')
-      .text('🔄 Refresh', 'admin_refresh');
+      .text('⚡ Sync Commands', 'admin_sync_commands')
+      .row()
+      .text('🔄 Refresh Dashboard', 'admin_refresh');
   }
 
   /**

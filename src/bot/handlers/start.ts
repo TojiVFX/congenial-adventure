@@ -84,6 +84,20 @@ export async function handleStart(ctx: Context): Promise<void> {
   });
 }
 
+export async function handleHelp(ctx: Context): Promise<void> {
+  const text =
+    `💡 <b>How to Use This Bot</b>\n\n` +
+    `• <b>For Channel Members:</b>\n` +
+    `  Click the invite or deep link provided by the channel owner. Start the bot and tap <b>Request to Join Channel</b> to be automatically approved!\n\n` +
+    `• <b>For Channel Administrators:</b>\n` +
+    `  1. Add this bot to your channel as an Administrator with <i>Invite Users via Link</i> rights.\n` +
+    `  2. Send /admin to connect your channel, toggle auto-approval, and generate shareable links.\n` +
+    `  3. Configure a Log Channel to record all join requests in real time.\n\n` +
+    `Need more help? Type /admin if you are an authorized administrator.`;
+
+  await ctx.reply(text, { parse_mode: 'HTML' });
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')

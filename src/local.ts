@@ -1,4 +1,4 @@
-import { bot } from './bot/index.js';
+import { bot, updateBotCommands } from './bot/index.js';
 import { connectDB } from './db/connection.js';
 
 async function startLocal() {
@@ -10,6 +10,9 @@ async function startLocal() {
     // Delete webhook if previously set so polling works locally
     await bot.api.deleteWebhook();
     console.log('🧹 Webhook cleared for local polling.');
+
+    // Auto-sync command list with Telegram
+    await updateBotCommands(bot);
 
     const me = await bot.api.getMe();
     console.log(`🤖 Bot @${me.username} is running! Press Ctrl+C to stop.`);

@@ -18,6 +18,7 @@ A production-ready Telegram Auto Request Approval Bot built with **TypeScript**,
   - **Link Center**: Generate and copy channel links instantly.
   - **Broadcast Tool**: Broadcast announcements to all bot users.
 - 📋 **Audit Log Channel**: Real-time notifications sent to your dedicated Telegram log channel for every new user, join request, auto-approval, and admin configuration change.
+- ⚡ **Auto-Updated Command Menu**: Bot automatically registers its command list (`/start`, `/help`, `/admin`) directly with Telegram's menu button upon webhook setup or via the admin dashboard button.
 - ☁️ **Serverless on Vercel**: Uses webhooks and connection-pooled MongoDB Atlas. Runs 24/7 on Vercel's free tier with zero maintenance.
 
 ---
