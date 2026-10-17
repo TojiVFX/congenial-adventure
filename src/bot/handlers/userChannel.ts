@@ -13,6 +13,27 @@ import { LoggerService } from '../services/loggerService.js';
 import { isAdmin } from './admin.js';
 
 /**
+ * Helper to edit existing prompt message or fallback to reply
+ */
+async function editOrReply(
+  ctx: Context,
+  chatId: number | undefined,
+  messageId: number | undefined,
+  text: string,
+  options: any
+): Promise<void> {
+  if (chatId && messageId) {
+    try {
+      await ctx.api.editMessageText(chatId, messageId, text, options);
+      return;
+    } catch (e: any) {
+      console.warn('[UserChannel] Edit message in-place failed, falling back to reply:', e.message);
+    }
+  }
+  await ctx.reply(text, options);
+}
+
+/**
  * Entry point for /managechat command
  */
 export async function handleManageChatCommand(ctx: Context): Promise<void> {
@@ -23,24 +44,34 @@ export async function handleManageChatCommand(ctx: Context): Promise<void> {
 
   const channels = await Channel.find({ addedByUserId: from.id }).sort({ createdAt: -1 });
 
+  let text: string;
+  let kb: InlineKeyboard;
+
   if (channels.length === 0) {
-    const text =
+    text =
       `⚙️ <b>ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴅᴀsʜʙᴏᴀʀᴅ</b>\n\n` +
       `ʏᴏᴜ ʜᴀᴠᴇ ɴᴏᴛ ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴀɴʏ ᴄʜᴀɴɴᴇʟs ʏᴇᴛ.\n\n` +
       `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ ᴍᴇᴍʙᴇʀs:</b> ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ ᴀᴄᴄᴇᴘᴛ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs.\n` +
       `• <b>sʜᴀʀᴇᴀʙʟᴇ ᴅᴇᴇᴘ-ʟɪɴᴋs:</b> ɢᴇᴛ ᴘʀᴇᴍɪᴜᴍ sʜᴏʀᴛ ʟɪɴᴋs ғᴏʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ.\n` +
       `• <b>ᴘʀɪᴠᴀᴄʏ:</b> ʏᴏᴜ ᴍᴀɪɴᴛᴀɪɴ ғᴜʟʟ ᴄᴏɴᴛʀᴏʟ ᴏᴠᴇʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ sᴇᴛᴛɪɴɢs.`;
 
-    const kb = new InlineKeyboard()
+    kb = new InlineKeyboard()
       .text('➕ ᴀᴅᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ', 'user_chan_add')
       .row();
-
-    await ctx.reply(text, { parse_mode: 'HTML', reply_markup: kb });
-    return;
+  } else {
+    const rendered = renderUserChannelList(channels);
+    text = rendered.text;
+    kb = rendered.keyboard;
   }
 
-  const { text, keyboard } = renderUserChannelList(channels);
-  await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
+  if (ctx.callbackQuery) {
+    try {
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+      return;
+    } catch {}
+  }
+
+  await ctx.reply(text, { parse_mode: 'HTML', reply_markup: kb });
 }
 
 /**
@@ -157,7 +188,11 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
   // 2. Add new channel initiation
   if (data === 'user_chan_add') {
     await ctx.answerCallbackQuery();
-    await setAdminSession(from.id, 'WAITING_USER_CHANNEL_INPUT');
+    const promptMsgId = ctx.callbackQuery?.message?.message_id;
+    await setAdminSession(from.id, 'WAITING_USER_CHANNEL_INPUT', {
+      promptMessageId: promptMsgId,
+      chatId: ctx.chat?.id,
+    });
 
     const promptText =
       `➕ <b>ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ</b>\n\n` +
@@ -364,12 +399,32 @@ export async function handleUserChannelInput(ctx: Context): Promise<boolean> {
     return false;
   }
 
+  const promptMessageId = session.data?.promptMessageId;
+  const chatId = session.data?.chatId || ctx.chat?.id;
+
+  // Clean up user's typed message or forwarded post so chat remains clean
+  try {
+    await ctx.deleteMessage();
+  } catch {}
+
   const text = ctx.message?.text?.trim();
 
-  // Cancel action
+  // Cancel action: restore view in the SAME message
   if (text === '/cancel') {
     await clearAdminSession(from.id);
-    await ctx.reply('❌ <b>ᴄᴀɴᴄᴇʟʟᴇᴅ</b>', { parse_mode: 'HTML' });
+    const channels = await Channel.find({ addedByUserId: from.id }).sort({ createdAt: -1 });
+    if (channels.length === 0) {
+      const cancelText =
+        `⚙️ <b>ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴅᴀsʜʙᴏᴀʀᴅ</b>\n\n` +
+        `ʏᴏᴜ ʜᴀᴠᴇ ɴᴏᴛ ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴀɴʏ ᴄʜᴀɴɴᴇʟs ʏᴇᴛ.\n\n` +
+        `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ ᴍᴇᴍʙᴇʀs:</b> ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ ᴀᴄᴄᴇᴘᴛ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs.\n` +
+        `• <b>sʜᴀʀᴇᴀʙʟᴇ ᴅᴇᴇᴘ-ʟɪɴᴋs:</b> ɢᴇᴛ ᴘʀᴇᴍɪᴜᴍ sʜᴏʀᴛ ʟɪɴᴋs ғᴏʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ.`;
+      const kb = new InlineKeyboard().text('➕ ᴀᴅᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ', 'user_chan_add').row();
+      await editOrReply(ctx, chatId, promptMessageId, cancelText, { parse_mode: 'HTML', reply_markup: kb });
+      return true;
+    }
+    const { text: listText, keyboard: listKb } = renderUserChannelList(channels);
+    await editOrReply(ctx, chatId, promptMessageId, listText, { parse_mode: 'HTML', reply_markup: listKb });
     return true;
   }
 
@@ -400,12 +455,12 @@ export async function handleUserChannelInput(ctx: Context): Promise<boolean> {
   }
 
   if (!channelId) {
-    await ctx.reply(
+    const retryText =
       `⚠️ <b>ɪɴᴠᴀʟɪᴅ ɪɴᴘᴜᴛ</b>\n\n` +
       `ᴘʟᴇᴀsᴇ ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ ғʀᴏᴍ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴏʀ sᴇɴᴅ ɪᴛs ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. <code>-1001234567890</code>).\n\n` +
-      `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`,
-      { parse_mode: 'HTML' }
-    );
+      `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`;
+    const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'user_chan_list');
+    await editOrReply(ctx, chatId, promptMessageId, retryText, { parse_mode: 'HTML', reply_markup: cancelKb });
     return true;
   }
 
@@ -419,29 +474,28 @@ export async function handleUserChannelInput(ctx: Context): Promise<boolean> {
   });
 
   if (!result.success || !result.channel) {
-    await ctx.reply(
+    const errorText =
       `❌ <b>ᴄᴏᴜʟᴅ ɴᴏᴛ ᴄᴏɴɴᴇᴄᴛ ᴄʜᴀɴɴᴇʟ</b>\n\n` +
       `${escapeHtml(result.error || 'Verification failed')}\n\n` +
       `💡 <b>ǫᴜɪᴄᴋ ᴄʜᴇᴄᴋʟɪsᴛ:</b>\n` +
       `1. ᴀᴅᴅ @${botUsername} ᴛᴏ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴀs ᴀɴ <b>ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ</b>.\n` +
       `2. ᴇɴsᴜʀᴇ <b>"ɪɴᴠɪᴛᴇ ᴜsᴇʀs ᴠɪᴀ ʟɪɴᴋ"</b> ɪs ᴇɴᴀʙʟᴇᴅ.\n` +
-      `3. ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ ᴏʀ sᴇɴᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ɪᴅ ᴀɢᴀɪɴ (ᴏʀ /cancel ᴛᴏ ᴀʙᴏʀᴛ).`,
-      { parse_mode: 'HTML' }
-    );
+      `3. ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ ᴏʀ sᴇɴᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ɪᴅ ᴀɢᴀɪɴ.`;
+    const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'user_chan_list');
+    await editOrReply(ctx, chatId, promptMessageId, errorText, { parse_mode: 'HTML', reply_markup: cancelKb });
     return true;
   }
 
   await clearAdminSession(from.id);
 
-  // Notify user that request was submitted
+  // Edit in place to show success!
   const successText =
     `⏳ <b>ʀᴇǫᴜᴇsᴛ sᴜʙᴍɪᴛᴛᴇᴅ ғᴏʀ ʀᴇᴠɪᴇᴡ!</b>\n\n` +
-    `ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ <b>${escapeHtml(result.channel.title)}</b> ʜᴀs ʙᴇᴇɴ sᴜʙᴍɪᴛᴛᴇᴅ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ғᴏʀ ᴀᴘᴘʀᴏᴠᴀʟ.\n\n` +
+    `ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ <b>${escapeHtml(result.channel.title)}</b> ʜᴀs ʙᴇᴇɴ sᴜʙᴍɪᴛᴛᴇᴅ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n\n` +
     `ʏᴏᴜ ᴡɪʟʟ ʀᴇᴄᴇɪᴠᴇ ᴀ ɴᴏᴛɪғɪᴄᴀᴛɪᴏɴ ʜᴇʀᴇ ᴀs sᴏᴏɴ ᴀs ɪᴛ ɪs ᴀᴄᴄᴇᴘᴛᴇᴅ.`;
 
   const viewKb = new InlineKeyboard().text('⚙️ ᴠɪᴇᴡ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
-
-  await ctx.reply(successText, { parse_mode: 'HTML', reply_markup: viewKb });
+  await editOrReply(ctx, chatId, promptMessageId, successText, { parse_mode: 'HTML', reply_markup: viewKb });
 
   // Dispatch interactive approval card to admins and log channel
   await sendChannelApprovalRequestToAdmins(ctx, result.channel);

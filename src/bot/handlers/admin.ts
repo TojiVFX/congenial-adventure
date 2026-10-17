@@ -1,4 +1,4 @@
-import { Context, Bot } from 'grammy';
+import { Context, Bot, InlineKeyboard } from 'grammy';
 import { config } from '../../config.js';
 import { Channel } from '../../db/models/Channel.js';
 import { User } from '../../db/models/User.js';
@@ -23,6 +23,27 @@ export async function isAdmin(userId: number): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Helper to edit existing prompt message or fallback to reply
+ */
+async function editOrReply(
+  ctx: Context,
+  chatId: number | undefined,
+  messageId: number | undefined,
+  text: string,
+  options: any
+): Promise<void> {
+  if (chatId && messageId) {
+    try {
+      await ctx.api.editMessageText(chatId, messageId, text, options);
+      return;
+    } catch (e: any) {
+      console.warn('[Admin] Edit in-place failed, fallback to reply:', e.message);
+    }
+  }
+  await ctx.reply(text, options);
 }
 
 /**
@@ -323,14 +344,21 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
     const channel = await Channel.findOne({ channelId });
     if (!channel) return;
 
-    await setAdminSession(from.id, 'WAITING_WELCOME_MSG', { channelId });
+    const promptMsgId = ctx.callbackQuery?.message?.message_id;
+    await setAdminSession(from.id, 'WAITING_WELCOME_MSG', {
+      channelId,
+      promptMessageId: promptMsgId,
+      chatId: ctx.chat?.id,
+    });
 
-    await ctx.reply(
+    const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', `channel_view_${channelId}`);
+
+    await ctx.editMessageText(
       `✏️ <b>Edit Welcome Message for ${escapeHtml(channel.title)}</b>\n\n` +
       `Current Welcome Message:\n` +
       `<blockquote>${escapeHtml(channel.welcomeMessage || 'None')}</blockquote>\n\n` +
-      `Please reply with the new welcome message text (HTML supported).\nSend /cancel to abort.`,
-      { parse_mode: 'HTML' }
+      `Please send the new welcome message text below.\n<i>Send /cancel to abort.</i>`,
+      { parse_mode: 'HTML', reply_markup: cancelKb }
     );
     return;
   }
@@ -357,14 +385,21 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
 
   // 9. Add Channel Prompt
   if (data === 'admin_add_channel') {
-    await setAdminSession(from.id, 'WAITING_CHANNEL_ID');
-    await ctx.reply(
+    const promptMsgId = ctx.callbackQuery?.message?.message_id;
+    await setAdminSession(from.id, 'WAITING_CHANNEL_ID', {
+      promptMessageId: promptMsgId,
+      chatId: ctx.chat?.id,
+    });
+
+    const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'admin_channels');
+
+    await ctx.editMessageText(
       `➕ <b>ᴀᴅᴅ ᴄʜᴀɴɴᴇʟ sᴇᴛᴜᴘ</b>\n\n` +
       `1. ᴀᴅᴅ ᴛʜɪs ʙᴏᴛ ᴛᴏ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴀs ᴀɴ <b>ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ</b>.\n` +
       `2. ɢʀᴀɴᴛ ᴘᴇʀᴍɪssɪᴏɴ: <b>"ɪɴᴠɪᴛᴇ ᴜsᴇʀs ᴠɪᴀ ʟɪɴᴋ"</b>.\n` +
       `3. sᴇɴᴅ ᴛʜᴇ <b>ᴄʜᴀɴɴᴇʟ ɪᴅ</b> (ᴇ.ɢ. <code>-1001234567890</code>) ᴏʀ <b>ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ</b> ғʀᴏᴍ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ʜᴇʀᴇ.\n\n` +
       `<i>sᴇɴᴅ /cancel ᴛᴏ ʀᴇᴛᴜʀɴ.</i>`,
-      { parse_mode: 'HTML' }
+      { parse_mode: 'HTML', reply_markup: cancelKb }
     );
     return;
   }
@@ -424,22 +459,29 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
         `• <b>sᴛᴀᴛᴜs:</b> ✅ ʟᴏɢ ᴅᴇʟɪᴠᴇʀʏ ɪs ᴡᴏʀᴋɪɴɢ ᴘᴇʀғᴇᴄᴛʟʏ!`,
         { parse_mode: 'HTML' }
       );
-      await ctx.reply('✅ ᴛᴇsᴛ ʟᴏɢ sᴜᴄᴄᴇssғᴜʟʟʏ sᴇɴᴛ ᴛᴏ ʟᴏɢ ᴄʜᴀɴɴᴇʟ!');
+      await ctx.answerCallbackQuery({ text: '✅ Test log successfully sent to log channel!' });
     } catch (err: any) {
-      await ctx.reply(`❌ ғᴀɪʟᴇᴅ ᴛᴏ sᴇɴᴅ ᴛᴇsᴛ ʟᴏɢ: ${err.message}`);
+      await ctx.answerCallbackQuery({ text: `❌ Failed to send test log: ${err.message}` });
     }
     return;
   }
 
   // 13. Set Log Channel Prompt
   if (data === 'set_log_channel') {
-    await setAdminSession(from.id, 'WAITING_LOG_CHANNEL_ID');
-    await ctx.reply(
+    const promptMsgId = ctx.callbackQuery?.message?.message_id;
+    await setAdminSession(from.id, 'WAITING_LOG_CHANNEL_ID', {
+      promptMessageId: promptMsgId,
+      chatId: ctx.chat?.id,
+    });
+
+    const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'admin_log_settings');
+
+    await ctx.editMessageText(
       `📋 <b>sᴇᴛ ʟᴏɢ ᴄʜᴀɴɴᴇʟ</b>\n\n` +
       `1. ᴀᴅᴅ ᴛʜɪs ʙᴏᴛ ᴛᴏ ʏᴏᴜʀ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ᴀs ᴀɴ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ᴡɪᴛʜ <b>"sᴇɴᴅ ᴍᴇssᴀɢᴇs"</b> ᴘᴇʀᴍɪssɪᴏɴ.\n` +
       `2. sᴇɴᴅ ᴛʜᴇ <b>ʟᴏɢ ᴄʜᴀɴɴᴇʟ ɪᴅ</b> (ᴇ.ɢ. <code>-1001234567890</code>) ᴏʀ <b>ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ</b> ғʀᴏᴍ ᴛʜᴇ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ʜᴇʀᴇ.\n\n` +
       `<i>sᴇɴᴅ /cancel ᴛᴏ ʀᴇᴛᴜʀɴ.</i>`,
-      { parse_mode: 'HTML' }
+      { parse_mode: 'HTML', reply_markup: cancelKb }
     );
     return;
   }
@@ -447,12 +489,20 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
   // 14. Broadcast Prompt
   if (data === 'admin_broadcast') {
     const userCount = await User.countDocuments();
-    await setAdminSession(from.id, 'WAITING_BROADCAST_MSG');
-    await ctx.reply(
+    const promptMsgId = ctx.callbackQuery?.message?.message_id;
+    await setAdminSession(from.id, 'WAITING_BROADCAST_MSG', {
+      promptMessageId: promptMsgId,
+      chatId: ctx.chat?.id,
+    });
+
+    const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'admin_home');
+
+    await ctx.editMessageText(
       `📣 <b>ʙʀᴏᴀᴅᴄᴀsᴛ ᴍᴇssᴀɢᴇ</b>\n\n` +
       `ᴛᴏᴛᴀʟ ᴀᴜᴅɪᴇɴᴄᴇ: <b>${userCount} ᴜsᴇʀs</b>.\n\n` +
-      `ᴘʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴡɪᴛʜ ᴛʜᴇ ᴍᴇssᴀɢᴇ ʏᴏᴜ ᴡᴏᴜʟᴅ ʟɪᴋᴇ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ (ᴛᴇxᴛ, ᴘʜᴏᴛᴏ, ᴍᴀʀᴋᴅᴏᴡɴ, ʜᴛᴍʟ sᴜᴘᴘᴏʀᴛᴇᴅ).\n<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`,
-      { parse_mode: 'HTML' }
+      `ᴘʟᴇᴀsᴇ sᴇɴᴅ ᴛʜᴇ ᴍᴇssᴀɢᴇ ʏᴏᴜ ᴡᴏᴜʟᴅ ʟɪᴋᴇ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ ʙᴇʟᴏᴡ (ᴛᴇxᴛ, ᴘʜᴏᴛᴏ, ᴍᴀʀᴋᴅᴏᴡɴ, ʜᴛᴍʟ sᴜᴘᴘᴏʀᴛᴇᴅ).\n\n` +
+      `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`,
+      { parse_mode: 'HTML', reply_markup: cancelKb }
     );
     return;
   }
@@ -461,7 +511,7 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
   if (data === 'admin_sync_commands') {
     const res = await updateBotCommands(ctx.api);
     if (res.success) {
-      await ctx.reply(
+      await ctx.editMessageText(
         `✅ <b>ᴛᴇʟᴇɢʀᴀᴍ ᴄᴏᴍᴍᴀɴᴅ ᴍᴇɴᴜ ᴜᴘᴅᴀᴛᴇᴅ!</b>\n\n` +
         `• <b>${res.count} ᴄᴏᴍᴍᴀɴᴅs</b> ʜᴀᴠᴇ ʙᴇᴇɴ sᴜᴄᴄᴇssғᴜʟʟʏ sʏɴᴄᴇᴅ ᴡɪᴛʜ ᴛᴇʟᴇɢʀᴀᴍ.\n` +
         `• ᴛʜᴇʏ ᴡɪʟʟ ɴᴏᴡ ᴀᴘᴘᴇᴀʀ ɪɴ ᴛʜᴇ <b>[/]</b> ᴍᴇɴᴜ ʙᴜᴛᴛᴏɴ ғᴏʀ ᴀʟʟ ᴜsᴇʀs.`,
@@ -471,7 +521,7 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
         }
       );
     } else {
-      await ctx.reply(`❌ <b>ғᴀɪʟᴇᴅ ᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄᴏᴍᴍᴀɴᴅs:</b> ${res.error}`, {
+      await ctx.editMessageText(`❌ <b>ғᴀɪʟᴇᴅ ᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄᴏᴍᴍᴀɴᴅs:</b> ${res.error}`, {
         parse_mode: 'HTML',
         reply_markup: AdminKeyboards.backToHome(),
       });
@@ -490,12 +540,24 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
   if (!from || !(await isAdmin(from.id))) return false;
 
   const session = await getAdminSession(from.id);
-  if (!session) return false;
+  if (!session || !session.state) return false;
+
+  const promptMessageId = session.data?.promptMessageId;
+  const chatId = session.data?.chatId || ctx.chat?.id;
+
+  // Clean up admin's typed or forwarded message so chat history is kept in one message
+  try {
+    await ctx.deleteMessage();
+  } catch {}
 
   // Handle cancel command
   if (text === '/cancel') {
     await clearAdminSession(from.id);
-    await ctx.reply('❌ Action cancelled.', { reply_markup: AdminKeyboards.backToHome() });
+    const dashText = await getDashboardText();
+    await editOrReply(ctx, chatId, promptMessageId, dashText, {
+      parse_mode: 'HTML',
+      reply_markup: AdminKeyboards.mainMenu(),
+    });
     return true;
   }
 
@@ -513,14 +575,16 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
     }
 
     if (!targetChannelId) {
-      await ctx.reply(
-        '⚠️ Invalid Channel ID. Please provide a valid numeric channel ID (e.g. <code>-1001234567890</code>) or forward a post from the channel.',
-        { parse_mode: 'HTML' }
-      );
+      const retryText =
+        '⚠️ <b>Invalid Channel ID.</b> Please provide a numeric channel ID (e.g. <code>-1001234567890</code>) or forward a post from the channel.\n\n<i>Send /cancel to return.</i>';
+      const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'admin_channels');
+      await editOrReply(ctx, chatId, promptMessageId, retryText, {
+        parse_mode: 'HTML',
+        reply_markup: cancelKb,
+      });
       return true;
     }
 
-    const addingMsg = await ctx.reply('⏳ ᴠᴀʟɪᴅᴀᴛɪɴɢ ʙᴏᴛ ᴘᴇʀᴍɪssɪᴏɴs ᴀɴᴅ sᴇᴛᴛɪɴɢ ᴜᴘ ᴄʜᴀɴɴᴇʟ...');
     const result = await ChannelService.addChannel(ctx as any, targetChannelId, {
       id: from.id,
       name: from.first_name,
@@ -528,8 +592,11 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
     });
 
     if (!result.success || !result.channel) {
-      await ctx.api.editMessageText(ctx.chat!.id, addingMsg.message_id, `❌ <b>sᴇᴛᴜᴘ ғᴀɪʟᴇᴅ:</b>\n${result.error}`, {
+      const errorText = `❌ <b>sᴇᴛᴜᴘ ғᴀɪʟᴇᴅ:</b>\n${result.error}\n\n<i>Send /cancel to return.</i>`;
+      const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'admin_channels');
+      await editOrReply(ctx, chatId, promptMessageId, errorText, {
         parse_mode: 'HTML',
+        reply_markup: cancelKb,
       });
       return true;
     }
@@ -539,9 +606,7 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
     const me = await ctx.api.getMe();
     const deepLink = LinkService.getBotDeepLink(me.username || '', result.channel.startPayload);
 
-    await ctx.api.editMessageText(
-      ctx.chat!.id,
-      addingMsg.message_id,
+    const successText =
       `🎉 <b>ᴄʜᴀɴɴᴇʟ ᴀᴅᴅᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ!</b>\n\n` +
       `• <b>ᴛɪᴛʟᴇ:</b> <b>${escapeHtml(result.channel.title)}</b>\n` +
       `• <b>ɪᴅ:</b> <code>${result.channel.channelId}</code>\n` +
@@ -549,13 +614,13 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
       `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ:</b> ✅ ᴇɴᴀʙʟᴇᴅ\n\n` +
       `🔗 <b>sʜᴏʀᴛ ʙᴏᴛ ʟɪɴᴋ:</b>\n<code>${deepLink}</code>\n\n` +
       `📨 <b>ᴅɪʀᴇᴄᴛ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b>\n<code>${result.channel.inviteLink}</code>\n\n` +
-      `<i>✨ ᴛᴀᴘ ᴛʜᴇ ᴄᴏᴘʏ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ɪɴsᴛᴀɴᴛʟʏ ᴄᴏᴘʏ ᴛʜᴇ ʟɪɴᴋ:</i>`,
-      {
-        parse_mode: 'HTML',
-        link_preview_options: { is_disabled: true },
-        reply_markup: AdminKeyboards.channelDetailMenu(result.channel, deepLink),
-      }
-    );
+      `<i>✨ ᴛᴀᴘ ᴛʜᴇ ᴄᴏᴘʏ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ɪɴsᴛᴀɴᴛʟʏ ᴄᴏᴘʏ ᴛʜᴇ ʟɪɴᴋ:</i>`;
+
+    await editOrReply(ctx, chatId, promptMessageId, successText, {
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true },
+      reply_markup: AdminKeyboards.channelDetailMenu(result.channel, deepLink),
+    });
 
     LoggerService.logChannelAction(
       ctx as any,
@@ -571,14 +636,18 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
   if (session.state === 'WAITING_WELCOME_MSG') {
     const channelId = session.data?.channelId;
     if (!channelId || !text) {
-      await ctx.reply('⚠️ Please provide a valid text message.');
+      await editOrReply(ctx, chatId, promptMessageId, '⚠️ Please provide a valid text message.', {
+        reply_markup: new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', `channel_view_${channelId}`),
+      });
       return true;
     }
 
     const channel = await Channel.findOne({ channelId });
     if (!channel) {
-      await ctx.reply('⚠️ Channel not found.');
       await clearAdminSession(from.id);
+      await editOrReply(ctx, chatId, promptMessageId, '⚠️ Channel not found.', {
+        reply_markup: AdminKeyboards.backToChannels(),
+      });
       return true;
     }
 
@@ -586,13 +655,13 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
     await channel.save();
     await clearAdminSession(from.id);
 
-    await ctx.reply(
-      `✅ <b>Welcome message updated for ${escapeHtml(channel.title)}!</b>\n\nNew message:\n<blockquote>${escapeHtml(text)}</blockquote>`,
-      {
-        parse_mode: 'HTML',
-        reply_markup: AdminKeyboards.channelDetailMenu(channel),
-      }
-    );
+    const updatedText =
+      `✅ <b>Welcome message updated for ${escapeHtml(channel.title)}!</b>\n\nNew message:\n<blockquote>${escapeHtml(text)}</blockquote>`;
+
+    await editOrReply(ctx, chatId, promptMessageId, updatedText, {
+      parse_mode: 'HTML',
+      reply_markup: AdminKeyboards.channelDetailMenu(channel),
+    });
     return true;
   }
 
@@ -609,8 +678,11 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
     }
 
     if (!logId) {
-      await ctx.reply('⚠️ Invalid Channel ID. Please provide a numeric ID (e.g. <code>-1001234567890</code>).', {
+      const retryText =
+        '⚠️ <b>Invalid Channel ID.</b> Please provide a numeric ID (e.g. <code>-1001234567890</code>).\n\n<i>Send /cancel to return.</i>';
+      await editOrReply(ctx, chatId, promptMessageId, retryText, {
         parse_mode: 'HTML',
+        reply_markup: new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'admin_log_settings'),
       });
       return true;
     }
@@ -628,17 +700,17 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
       await settings.save();
       await clearAdminSession(from.id);
 
-      await ctx.reply(
-        `✅ <b>Log Channel successfully configured!</b>\nID: <code>${logId}</code>`,
-        {
-          parse_mode: 'HTML',
-          reply_markup: AdminKeyboards.backToHome(),
-        }
-      );
+      const successText = `✅ <b>Log Channel successfully configured!</b>\nID: <code>${logId}</code>`;
+      await editOrReply(ctx, chatId, promptMessageId, successText, {
+        parse_mode: 'HTML',
+        reply_markup: AdminKeyboards.backToHome(),
+      });
     } catch (err: any) {
-      await ctx.reply(
-        `❌ <b>Could not send message to channel ${logId}:</b>\n${err.message}\n\nPlease ensure the bot is an Administrator in the log channel with "Send Messages" permission.`
-      );
+      const failText = `❌ <b>Could not send message to channel ${logId}:</b>\n${err.message}\n\nPlease ensure the bot is an Administrator in the log channel with "Send Messages" permission.`;
+      await editOrReply(ctx, chatId, promptMessageId, failText, {
+        parse_mode: 'HTML',
+        reply_markup: new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'admin_log_settings'),
+      });
     }
     return true;
   }
@@ -648,9 +720,8 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
     await clearAdminSession(from.id);
 
     const users = await User.find({ isBanned: false });
-    const statusMsg = await ctx.reply(`🚀 Starting broadcast to <b>${users.length}</b> users...`, {
-      parse_mode: 'HTML',
-    });
+    const statusText = `🚀 Starting broadcast to <b>${users.length}</b> users...`;
+    await editOrReply(ctx, chatId, promptMessageId, statusText, { parse_mode: 'HTML' });
 
     let success = 0;
     let failed = 0;
@@ -662,22 +733,19 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
       } catch {
         failed++;
       }
-      // Small delay to respect Telegram rate limits
       await new Promise(r => setTimeout(r, 40));
     }
 
-    await ctx.api.editMessageText(
-      ctx.chat!.id,
-      statusMsg.message_id,
+    const doneText =
       `📣 <b>Broadcast Completed!</b>\n\n` +
       `• <b>Total Targets:</b> <code>${users.length}</code>\n` +
       `• <b>✅ Delivered:</b> <code>${success}</code>\n` +
-      `• <b>❌ Failed / Blocked:</b> <code>${failed}</code>`,
-      {
-        parse_mode: 'HTML',
-        reply_markup: AdminKeyboards.backToHome(),
-      }
-    );
+      `• <b>❌ Failed / Blocked:</b> <code>${failed}</code>`;
+
+    await editOrReply(ctx, chatId, promptMessageId, doneText, {
+      parse_mode: 'HTML',
+      reply_markup: AdminKeyboards.backToHome(),
+    });
     return true;
   }
 

@@ -21,15 +21,18 @@ export async function handleContactCommand(ctx: Context): Promise<void> {
   }
 
   // Otherwise, set session and prompt user for details
-  await setAdminSession(from.id, 'WAITING_USER_CONTACT');
-
-  await ctx.reply(
+  const promptMsg = await ctx.reply(
     `📩 <b>ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ</b>\n\n` +
     `ᴘʟᴇᴀsᴇ sᴇɴᴅ ʏᴏᴜʀ <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ, ᴜsᴇʀɴᴀᴍᴇ, ᴏʀ ᴍᴇssᴀɢᴇ</b> ʙᴇʟᴏᴡ.\n` +
     `ʏᴏᴜ ᴄᴀɴ ᴀʟsᴏ ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ ғʀᴏᴍ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴇʀᴇ.\n\n` +
     `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`,
     { parse_mode: 'HTML' }
   );
+
+  await setAdminSession(from.id, 'WAITING_USER_CONTACT', {
+    promptMessageId: promptMsg.message_id,
+    chatId: ctx.chat?.id,
+  });
 }
 
 export async function handleContactMessage(ctx: Context): Promise<boolean> {
@@ -41,10 +44,26 @@ export async function handleContactMessage(ctx: Context): Promise<boolean> {
     return false;
   }
 
+  const promptMessageId = session.data?.promptMessageId;
+  const chatId = session.data?.chatId || ctx.chat?.id;
+
+  // Clean up user's message
+  try {
+    await ctx.deleteMessage();
+  } catch {}
+
   const text = ctx.message?.text?.trim();
   if (text === '/cancel') {
     await clearAdminSession(from.id);
-    await ctx.reply('❌ <b>ᴄᴀɴᴄᴇʟʟᴇᴅ</b>', { parse_mode: 'HTML' });
+    if (promptMessageId && chatId) {
+      try {
+        await ctx.api.editMessageText(chatId, promptMessageId, '❌ <b>ᴄᴏɴᴛᴀᴄᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ</b>', {
+          parse_mode: 'HTML',
+        });
+        return true;
+      } catch {}
+    }
+    await ctx.reply('❌ <b>ᴄᴏɴᴛᴀᴄᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ</b>', { parse_mode: 'HTML' });
     return true;
   }
 
@@ -58,12 +77,20 @@ export async function handleContactMessage(ctx: Context): Promise<boolean> {
 
   await sendContactToAdmins(ctx, content);
 
-  await ctx.reply(
+  const confirmText =
     `✅ <b>ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʜᴀs ʙᴇᴇɴ sᴇɴᴛ!</b>\n\n` +
-    `ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ʜᴀs ʀᴇᴄᴇɪᴠᴇᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴅᴇᴛᴀɪʟs ᴀɴᴅ ᴡɪʟʟ ʀᴇᴠɪᴇᴡ ɪᴛ sʜᴏʀᴛʟʏ.`,
-    { parse_mode: 'HTML' }
-  );
+    `ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ʜᴀs ʀᴇᴄᴇɪᴠᴇᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴅᴇᴛᴀɪʟs ᴀɴᴅ ᴡɪʟʟ ʀᴇᴠɪᴇᴡ ɪᴛ sʜᴏʀᴛʟʏ.`;
 
+  if (promptMessageId && chatId) {
+    try {
+      await ctx.api.editMessageText(chatId, promptMessageId, confirmText, {
+        parse_mode: 'HTML',
+      });
+      return true;
+    } catch {}
+  }
+
+  await ctx.reply(confirmText, { parse_mode: 'HTML' });
   return true;
 }
 
