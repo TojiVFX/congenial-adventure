@@ -1,6 +1,6 @@
 import { Context, InlineKeyboard } from 'grammy';
 import { User } from '../../db/models/User.js';
-import { LinkService } from '../services/linkService.js';
+import { LinkService, USER_LINK_TTL_MINUTES } from '../services/linkService.js';
 import { LoggerService } from '../services/loggerService.js';
 import { ChannelService } from '../services/channelService.js';
 
@@ -94,20 +94,33 @@ export async function handleStart(ctx: Context): Promise<void> {
     return;
   }
 
-  // 6. Present the Join Request Button to the user
-  const inviteLink = channel.inviteLink || `https://t.me/${channel.username || ''}`;
+  // 6. Generate a personal join-request link for THIS user that expires in 10 minutes
+  let userLink: string;
+  try {
+    const result = await LinkService.getOrCreateUserInviteLink(ctx as any, channel.channelId, from.id);
+    userLink = result.link;
+  } catch (err) {
+    console.error('[handleStart] Failed to create personal invite link:', err);
+    await ctx.reply(
+      `⚠️ <b>Could not create your invite link.</b>\n\nPlease try again in a moment or contact the channel administrator.`,
+      { parse_mode: 'HTML' }
+    );
+    return;
+  }
+
   const keyboard = new InlineKeyboard()
-    .url('🚀 ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ', inviteLink)
+    .url('🚀 ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ', userLink)
     .row();
 
   const greeting = channel.welcomeMessage
     ? `${channel.welcomeMessage}\n\n`
-    : `ᴛᴀᴘ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ sᴜʙᴍɪᴛ ʏᴏᴜʀ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛ. ʏᴏᴜ ᴡɪʟʟ ʙᴇ ᴀᴘᴘʀᴏᴠᴇᴅ ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ!`;
+    : `ᴛᴀᴘ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ sᴜʙᴍɪᴛ ʏᴏᴜʀ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛ. ʏᴏᴜ ᴡɪʟʟ ʙᴇ ᴀᴘᴘʀᴏᴠᴇᴅ ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ!\n\n`;
 
   const replyText =
     `✨ <b>ᴄʜᴀɴɴᴇʟ ɪɴᴠɪᴛᴀᴛɪᴏɴ</b>\n\n` +
     `ʏᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ɪɴᴠɪᴛᴇᴅ ᴛᴏ ᴊᴏɪɴ <b>${escapeHtml(channel.title)}</b>.\n\n` +
-    `${greeting}`;
+    `${greeting}` +
+    `⏳ <i>This personal link is valid for ${USER_LINK_TTL_MINUTES} minutes and works only for you.</i>`;
 
   await ctx.reply(replyText, {
     parse_mode: 'HTML',
@@ -156,7 +169,7 @@ export async function handleHelp(ctx: Context): Promise<void> {
     `💡 <b>ʜᴏᴡ ᴛᴏ ᴜsᴇ ᴛʜɪs ʙᴏᴛ</b>\n\n` +
     `• <b>ᴊᴏɪɴɪɴɢ ᴀ ᴄᴏᴍᴍᴜɴɪᴛʏ:</b>\n` +
     `  1. ᴄʟɪᴄᴋ ᴛʜᴇ sʜᴏʀᴛ ɪɴᴠɪᴛᴇ ʟɪɴᴋ ғᴏʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ.\n` +
-    `  2. ᴛᴀᴘ <b>ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ</b>.\n` +
+    `  2. ᴛᴀᴘ <b>ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ</b> (ʏᴏᴜʀ ᴘᴇʀsᴏɴᴀʟ ʟɪɴᴋ ʟᴀsᴛs 10 ᴍɪɴᴜᴛᴇs).\n` +
     `  3. ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ᴡɪʟʟ ʙᴇ ᴠᴇʀɪғɪᴇᴅ ᴀɴᴅ ᴀᴘᴘʀᴏᴠᴇᴅ ɪɴsᴛᴀɴᴛʟʏ!\n\n` +
     `• <b>ᴄᴏɴɴᴇᴄᴛɪɴɢ ʏᴏᴜʀ ᴏᴡɴ ᴄʜᴀɴɴᴇʟ:</b>\n` +
     `  1. sᴇɴᴅ /managechat ᴛᴏ ᴏᴘᴇɴ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴅᴀsʜʙᴏᴀʀᴅ.\n` +

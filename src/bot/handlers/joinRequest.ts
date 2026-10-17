@@ -1,8 +1,8 @@
 import { Context } from 'grammy';
 import { Channel } from '../../db/models/Channel.js';
 import { RequestLog } from '../../db/models/RequestLog.js';
+import { InviteLink } from '../../db/models/InviteLink.js';
 import { LoggerService } from '../services/loggerService.js';
-import { LinkService } from '../services/linkService.js';
 
 export async function handleChatJoinRequest(ctx: Context): Promise<void> {
   const joinRequest = ctx.chatJoinRequest;
@@ -28,6 +28,29 @@ export async function handleChatJoinRequest(ctx: Context): Promise<void> {
       reason: channel ? `Channel status is ${channel.status}` : 'Channel not registered or approved by administrator',
     });
     return;
+  }
+
+  // Personal link check: if the request came through a per-user expiring link,
+  // only the user it was issued to may be approved.
+  const usedLink = joinRequest.invite_link?.invite_link;
+  let personalLinkRecord: any = null;
+  if (usedLink) {
+    personalLinkRecord = await InviteLink.findOne({ inviteLink: usedLink });
+    if (personalLinkRecord && personalLinkRecord.userId !== user.id) {
+      console.log(
+        `[JoinRequest] Link issued to ${personalLinkRecord.userId} was used by ${user.id}. Request kept pending.`
+      );
+      await RequestLog.create({
+        userId: user.id,
+        userName: user.first_name,
+        userUsername: user.username,
+        channelId: chat.id,
+        channelTitle: chat.title || 'Untitled Channel',
+        status: 'pending',
+        reason: 'Personal invite link was issued to a different user',
+      });
+      return;
+    }
   }
 
   // Update total request count
@@ -75,6 +98,16 @@ export async function handleChatJoinRequest(ctx: Context): Promise<void> {
       channelTitle: chat.title || 'Untitled Channel',
       status: 'approved',
     });
+
+    // Personal link is single-use: mark it used and revoke it
+    if (personalLinkRecord && usedLink) {
+      try {
+        await InviteLink.updateOne({ inviteLink: usedLink }, { used: true });
+        await ctx.api.revokeChatInviteLink(chat.id, usedLink);
+      } catch (revokeErr) {
+        console.warn(`[JoinRequest] Could not revoke personal link for ${user.id}:`, revokeErr);
+      }
+    }
 
     // Send Welcome Message in private chat to user (if permitted by Telegram)
     try {
