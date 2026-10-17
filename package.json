@@ -1,0 +1,31 @@
+{
+  "name": "tg-auto-request-accept-bot",
+  "version": "1.0.0",
+  "description": "Telegram Auto Request Approval Bot for Vercel Serverless with Deep Link Generator and Admin Dashboard",
+  "main": "api/webhook.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node dist/src/local.js",
+    "dev": "tsc -w"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "auto-approve",
+    "join-request",
+    "grammy",
+    "vercel",
+    "serverless"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "grammy": "^1.35.0",
+    "mongoose": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "typescript": "^5.7.3"
+  }
+}
