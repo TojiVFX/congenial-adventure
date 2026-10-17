@@ -489,9 +489,14 @@ export async function handleUserChannelInput(ctx: Context): Promise<boolean> {
   await clearAdminSession(from.id);
 
   // Edit in place to show success!
+  const channelLink = result.channel.inviteLink || (result.channel.username ? `https://t.me/${result.channel.username}` : undefined);
+
   const successText =
     `⏳ <b>ʀᴇǫᴜᴇsᴛ sᴜʙᴍɪᴛᴛᴇᴅ ғᴏʀ ʀᴇᴠɪᴇᴡ!</b>\n\n` +
-    `ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ <b>${escapeHtml(result.channel.title)}</b> ʜᴀs ʙᴇᴇɴ sᴜʙᴍɪᴛᴛᴇᴅ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n\n` +
+    `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(result.channel.title)}</b>\n` +
+    `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${result.channel.channelId}</code>\n` +
+    (channelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> <code>${channelLink}</code>\n\n` : '\n') +
+    `ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴀs ʙᴇᴇɴ sᴜʙᴍɪᴛᴛᴇᴅ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n` +
     `ʏᴏᴜ ᴡɪʟʟ ʀᴇᴄᴇɪᴠᴇ ᴀ ɴᴏᴛɪғɪᴄᴀᴛɪᴏɴ ʜᴇʀᴇ ᴀs sᴏᴏɴ ᴀs ɪᴛ ɪs ᴀᴄᴄᴇᴘᴛᴇᴅ.`;
 
   const viewKb = new InlineKeyboard().text('⚙️ ᴠɪᴇᴡ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
@@ -512,19 +517,25 @@ async function sendChannelApprovalRequestToAdmins(
 ): Promise<void> {
   const from = ctx.from!;
   const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const channelLink = channel.inviteLink || (channel.username ? `https://t.me/${channel.username}` : undefined);
 
   const adminText =
     `📢 <b>ɴᴇᴡ ᴄʜᴀɴɴᴇʟ ᴀᴘᴘʀᴏᴠᴀʟ ʀᴇǫᴜᴇsᴛ</b>\n\n` +
     `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b>\n` +
     `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
     `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username}` : '<i>ɴᴏɴᴇ</i>'}\n` +
+    (channelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> ${channelLink}\n` : '') +
     `• <b>sᴜʙᴍɪᴛᴛᴇᴅ ʙʏ:</b> <a href="tg://user?id=${from.id}">${escapeHtml(from.first_name)}</a> (<code>${from.id}</code>)\n` +
     `• <b>ᴜsᴇʀ ʜᴀɴᴅʟᴇ:</b> ${from.username ? `@${from.username}` : '<i>ɴᴏɴᴇ</i>'}\n` +
     `• <b>ᴛɪᴍᴇ:</b> <code>${time} UTC</code>\n` +
     `• <b>sᴛᴀᴛᴜs:</b> ⏳ <b>ᴘᴇɴᴅɪɴɢ ʀᴇᴠɪᴇᴡ</b>\n\n` +
     `ᴘʟᴇᴀsᴇ ʀᴇᴠɪᴇᴡ ᴛʜɪs ʀᴇǫᴜᴇsᴛ ᴀɴᴅ ᴀᴄᴄᴇᴘᴛ ᴏʀ ʀᴇᴊᴇᴄᴛ:`;
 
-  const approvalKb = new InlineKeyboard()
+  const approvalKb = new InlineKeyboard();
+  if (channelLink) {
+    approvalKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', channelLink).row();
+  }
+  approvalKb
     .text('✅ ᴀᴄᴄᴇᴘᴛ', `admin_approve_chan:${channel._id}`)
     .text('❌ ʀᴇᴊᴇᴄᴛ', `admin_reject_chan:${channel._id}`);
 
@@ -614,10 +625,12 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
     await ctx.answerCallbackQuery({ text: 'Channel approved successfully!' });
 
     // 2. Update Admin notification message: display approved banner and remove buttons
+    const approvedChannelLink = channel.inviteLink || (channel.username ? `https://t.me/${channel.username}` : undefined);
     const updatedAdminText =
       `📢 <b>ᴄʜᴀɴɴᴇʟ ᴀᴘᴘʀᴏᴠᴀʟ ʀᴇǫᴜᴇsᴛ</b>\n\n` +
       `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b>\n` +
       `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
+      (approvedChannelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> ${approvedChannelLink}\n` : '') +
       `• <b>sᴜʙᴍɪᴛᴛᴇᴅ ʙʏ:</b> <a href="tg://user?id=${channel.addedByUserId}">${escapeHtml(channel.addedByUserName || 'User')}</a> (<code>${channel.addedByUserId}</code>)\n` +
       `• <b>sᴛᴀᴛᴜs:</b> ✅ <b>ᴀᴘᴘʀᴏᴠᴇᴅ ʙʏ ${escapeHtml(from.first_name)}</b>`;
 

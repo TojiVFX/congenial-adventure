@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { Bot } from 'grammy';
+import { Bot, Api } from 'grammy';
 import { Channel, IChannel } from '../../db/models/Channel.js';
 
 export class LinkService {
@@ -33,12 +33,16 @@ export class LinkService {
    * (creates_join_request: true)
    */
   static async getOrCreateChannelInviteLink(
-    bot: Bot,
+    botOrApi: Bot | Api | { api: Api },
     channelId: number,
     channelTitle: string
   ): Promise<string> {
+    const api: Api =
+      'api' in botOrApi && (botOrApi as any).api
+        ? ((botOrApi as any).api as Api)
+        : (botOrApi as Api);
     try {
-      const inviteLinkObj = await bot.api.createChatInviteLink(channelId, {
+      const inviteLinkObj = await api.createChatInviteLink(channelId, {
         name: `JoinReq_${channelTitle.substring(0, 12).replace(/[^\w\s]/gi, '')}`,
         creates_join_request: true,
       });

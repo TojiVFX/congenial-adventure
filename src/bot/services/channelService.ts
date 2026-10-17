@@ -157,15 +157,30 @@ export class ChannelService {
         channel.addedByUserId = user.id;
         channel.addedByUserName = user.name;
         channel.addedByUserUsername = user.username;
+        if (!channel.inviteLink) {
+          try {
+            channel.inviteLink = await LinkService.getOrCreateChannelInviteLink(botOrApi, channelId, validation.title);
+          } catch {
+            if (validation.username) channel.inviteLink = `https://t.me/${validation.username}`;
+          }
+        }
         await channel.save();
         return { success: true, channel };
       }
 
       const startPayload = LinkService.generateStartPayload(8);
+      let inviteLink: string | undefined;
+      try {
+        inviteLink = await LinkService.getOrCreateChannelInviteLink(botOrApi, channelId, validation.title);
+      } catch {
+        if (validation.username) inviteLink = `https://t.me/${validation.username}`;
+      }
+
       channel = await Channel.create({
         channelId,
         title: validation.title,
         username: validation.username,
+        inviteLink,
         startPayload,
         autoApproveEnabled: true,
         status: 'pending',
