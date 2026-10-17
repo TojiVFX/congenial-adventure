@@ -110,16 +110,16 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
       totalRequests > 0 ? ((totalApproved / totalRequests) * 100).toFixed(1) : '0';
 
     let statsText =
-      `📊 <b>Detailed Bot Analytics</b>\n\n` +
-      `• <b>Total Registered Users:</b> <code>${totalUsers}</code>\n` +
-      `• <b>Active Channels:</b> <code>${totalChannels}</code>\n` +
-      `• <b>Total Join Requests:</b> <code>${totalRequests}</code>\n` +
-      `• <b>✅ Approved:</b> <code>${totalApproved}</code> (${approvalRate}%)\n` +
-      `• <b>⏸️ Pending:</b> <code>${totalPending}</code>\n\n` +
-      `🕒 <b>Recent Actions:</b>\n`;
+      `📊 <b>ᴅᴇᴛᴀɪʟᴇᴅ ʙᴏᴛ ᴀɴᴀʟʏᴛɪᴄs</b>\n\n` +
+      `• <b>ᴛᴏᴛᴀʟ ᴜsᴇʀs:</b> <code>${totalUsers}</code>\n` +
+      `• <b>ᴀᴄᴛɪᴠᴇ ᴄʜᴀɴɴᴇʟs:</b> <code>${totalChannels}</code>\n` +
+      `• <b>ᴛᴏᴛᴀʟ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs:</b> <code>${totalRequests}</code>\n` +
+      `• <b>✅ ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${totalApproved}</code> (${approvalRate}%)\n` +
+      `• <b>⏸️ ᴘᴇɴᴅɪɴɢ:</b> <code>${totalPending}</code>\n\n` +
+      `🕒 <b>ʀᴇᴄᴇɴᴛ ᴀᴄᴛɪᴏɴs:</b>\n`;
 
     if (recentLogs.length === 0) {
-      statsText += `<i>No requests recorded yet.</i>\n`;
+      statsText += `<i>ɴᴏ ʀᴇǫᴜᴇsᴛs ʀᴇᴄᴏʀᴅᴇᴅ ʏᴇᴛ.</i>\n`;
     } else {
       for (const log of recentLogs) {
         const icon = log.status === 'approved' ? '🟢' : '🟡';
@@ -141,7 +141,7 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
 
     if (channels.length === 0) {
       await ctx.editMessageText(
-        `📢 <b>Channel Management</b>\n\nNo channels have been connected yet.\nClick <b>Add New Channel</b> to connect your first channel.`,
+        `📢 <b>ᴄʜᴀɴɴᴇʟ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ</b>\n\nɴᴏ ᴄʜᴀɴɴᴇʟs ʜᴀᴠᴇ ʙᴇᴇɴ ᴄᴏɴɴᴇᴄᴛᴇᴅ ʏᴇᴛ.\nᴄʟɪᴄᴋ <b>ᴀᴅᴅ ɴᴇᴡ ᴄʜᴀɴɴᴇʟ</b> ᴛᴏ ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ғɪʀsᴛ ᴄʜᴀɴɴᴇʟ.`,
         {
           parse_mode: 'HTML',
           reply_markup: AdminKeyboards.channelListMenu([]),
@@ -151,7 +151,7 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
     }
 
     await ctx.editMessageText(
-      `📢 <b>Connected Channels (${channels.length})</b>\n\nClick on any channel below to view settings, copy links, or toggle auto-approval:`,
+      `📢 <b>ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴄʜᴀɴɴᴇʟs (${channels.length})</b>\n\nᴄʟɪᴄᴋ ᴏɴ ᴀɴʏ ᴄʜᴀɴɴᴇʟ ʙᴇʟᴏᴡ ᴛᴏ ᴠɪᴇᴡ sᴇᴛᴛɪɴɢs, ᴄᴏᴘʏ ʟɪɴᴋs, ᴏʀ ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ:`,
       {
         parse_mode: 'HTML',
         reply_markup: AdminKeyboards.channelListMenu(channels),
@@ -180,22 +180,27 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
 
     const me = await ctx.api.getMe();
     const deepLink = LinkService.getBotDeepLink(me.username || '', channel.startPayload);
-    const statusText = channel.autoApproveEnabled ? '✅ <b>Active (ON)</b>' : '⏸️ <b>Disabled (OFF)</b>';
+    const statusText = channel.autoApproveEnabled ? '✅ <b>ᴀᴄᴛɪᴠᴇ (ᴏɴ)</b>' : '⏸️ <b>ᴅɪsᴀʙʟᴇᴅ (ᴏғғ)</b>';
+    const ownerDisplay = channel.addedByUserName
+      ? `<a href="tg://user?id=${channel.addedByUserId}">${escapeHtml(channel.addedByUserName)}</a> (<code>${channel.addedByUserId}</code>)`
+      : '<i>ɴᴏᴛ ʀᴇɢɪsᴛᴇʀᴇᴅ</i>';
 
     const text =
-      `📢 <b>Channel: ${escapeHtml(channel.title)}</b>\n\n` +
-      `• <b>Channel ID:</b> <code>${channel.channelId}</code>\n` +
-      `• <b>Username:</b> ${channel.username ? `@${channel.username}` : '<i>Private</i>'}\n` +
-      `• <b>Auto-Approve:</b> ${statusText}\n` +
-      `• <b>Total Requests:</b> <code>${channel.totalRequests || 0}</code>\n` +
-      `• <b>Approved:</b> <code>${channel.totalApproved || 0}</code>\n\n` +
-      `🔗 <b>Short Bot Deep-Link:</b>\n<code>${deepLink}</code>\n\n` +
-      `📨 <b>Direct Channel Link:</b>\n<code>${channel.inviteLink || 'Not generated'}</code>`;
+      `📢 <b>ᴄʜᴀɴɴᴇʟ: ${escapeHtml(channel.title)}</b>\n\n` +
+      `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
+      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username}` : '<i>ᴘʀɪᴠᴀᴛᴇ</i>'}\n` +
+      `• <b>ᴀᴅᴅᴇᴅ ʙʏ:</b> ${ownerDisplay}\n` +
+      `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ:</b> ${statusText}\n` +
+      `• <b>ᴛᴏᴛᴀʟ ʀᴇǫᴜᴇsᴛs:</b> <code>${channel.totalRequests || 0}</code>\n` +
+      `• <b>ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${channel.totalApproved || 0}</code>\n\n` +
+      `🔗 <b>sʜᴏʀᴛ ʙᴏᴛ ʟɪɴᴋ:</b>\n<code>${deepLink}</code>\n\n` +
+      `📨 <b>ᴅɪʀᴇᴄᴛ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b>\n<code>${channel.inviteLink || 'ɴᴏᴛ ɢᴇɴᴇʀᴀᴛᴇᴅ'}</code>\n\n` +
+      `<i>👉 ᴛᴀᴘ ᴛʜᴇ ᴄᴏᴘʏ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ɪɴsᴛᴀɴᴛʟʏ ᴄᴏᴘʏ ᴛʜᴇ ʟɪɴᴋ.</i>`;
 
     await ctx.editMessageText(text, {
       parse_mode: 'HTML',
       link_preview_options: { is_disabled: true },
-      reply_markup: AdminKeyboards.channelDetailMenu(channel),
+      reply_markup: AdminKeyboards.channelDetailMenu(channel, deepLink),
     });
     return;
   }
@@ -220,22 +225,27 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
     // Refresh view
     const me = await ctx.api.getMe();
     const deepLink = LinkService.getBotDeepLink(me.username || '', channel.startPayload);
-    const statusText = channel.autoApproveEnabled ? '✅ <b>Active (ON)</b>' : '⏸️ <b>Disabled (OFF)</b>';
+    const statusText = channel.autoApproveEnabled ? '✅ <b>ᴀᴄᴛɪᴠᴇ (ᴏɴ)</b>' : '⏸️ <b>ᴅɪsᴀʙʟᴇᴅ (ᴏғғ)</b>';
+    const ownerDisplay = channel.addedByUserName
+      ? `<a href="tg://user?id=${channel.addedByUserId}">${escapeHtml(channel.addedByUserName)}</a> (<code>${channel.addedByUserId}</code>)`
+      : '<i>ɴᴏᴛ ʀᴇɢɪsᴛᴇʀᴇᴅ</i>';
 
     const text =
-      `📢 <b>Channel: ${escapeHtml(channel.title)}</b>\n\n` +
-      `• <b>Channel ID:</b> <code>${channel.channelId}</code>\n` +
-      `• <b>Username:</b> ${channel.username ? `@${channel.username}` : '<i>Private</i>'}\n` +
-      `• <b>Auto-Approve:</b> ${statusText}\n` +
-      `• <b>Total Requests:</b> <code>${channel.totalRequests || 0}</code>\n` +
-      `• <b>Approved:</b> <code>${channel.totalApproved || 0}</code>\n\n` +
-      `🔗 <b>Short Bot Deep-Link:</b>\n<code>${deepLink}</code>\n\n` +
-      `📨 <b>Direct Channel Link:</b>\n<code>${channel.inviteLink || 'Not generated'}</code>`;
+      `📢 <b>ᴄʜᴀɴɴᴇʟ: ${escapeHtml(channel.title)}</b>\n\n` +
+      `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
+      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username}` : '<i>ᴘʀɪᴠᴀᴛᴇ</i>'}\n` +
+      `• <b>ᴀᴅᴅᴇᴅ ʙʏ:</b> ${ownerDisplay}\n` +
+      `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ:</b> ${statusText}\n` +
+      `• <b>ᴛᴏᴛᴀʟ ʀᴇǫᴜᴇsᴛs:</b> <code>${channel.totalRequests || 0}</code>\n` +
+      `• <b>ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${channel.totalApproved || 0}</code>\n\n` +
+      `🔗 <b>sʜᴏʀᴛ ʙᴏᴛ ʟɪɴᴋ:</b>\n<code>${deepLink}</code>\n\n` +
+      `📨 <b>ᴅɪʀᴇᴄᴛ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b>\n<code>${channel.inviteLink || 'ɴᴏᴛ ɢᴇɴᴇʀᴀᴛᴇᴅ'}</code>\n\n` +
+      `<i>👉 ᴛᴀᴘ ᴛʜᴇ ᴄᴏᴘʏ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ɪɴsᴛᴀɴᴛʟʏ ᴄᴏᴘʏ ᴛʜᴇ ʟɪɴᴋ.</i>`;
 
     await ctx.editMessageText(text, {
       parse_mode: 'HTML',
       link_preview_options: { is_disabled: true },
-      reply_markup: AdminKeyboards.channelDetailMenu(channel),
+      reply_markup: AdminKeyboards.channelDetailMenu(channel, deepLink),
     });
     return;
   }
@@ -255,18 +265,18 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
     const deepLink = LinkService.getBotDeepLink(me.username || '', channel.startPayload);
 
     const text =
-      `🔗 <b>Shareable Links for ${escapeHtml(channel.title)}</b>\n\n` +
-      `1️⃣ <b>Short Bot Deep-Link (Recommended):</b>\n` +
+      `🔗 <b>sʜᴀʀᴇᴀʙʟᴇ ʟɪɴᴋs ғᴏʀ ${escapeHtml(channel.title)}</b>\n\n` +
+      `1️⃣ <b>sʜᴏʀᴛ ʙᴏᴛ ᴅᴇᴇᴘ-ʟɪɴᴋ (ʀᴇᴄᴏᴍᴍᴇɴᴅᴇᴅ):</b>\n` +
       `<code>${deepLink}</code>\n` +
-      `<i>👉 Directs user to start the bot, records them, and guides them to request entry.</i>\n\n` +
-      `2️⃣ <b>Direct Channel Request Link:</b>\n` +
-      `<code>${channel.inviteLink || 'Not available'}</code>\n` +
-      `<i>👉 Directly opens the channel request popup.</i>`;
+      `<i>👉 ᴅɪʀᴇᴄᴛs ᴜsᴇʀ ᴛᴏ sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ, ʀᴇɢɪsᴛᴇʀs ᴛʜᴇᴍ, ᴀɴᴅ ɢᴜɪᴅᴇs ᴛʜᴇᴍ ᴛᴏ ʀᴇǫᴜᴇsᴛ ᴇɴᴛʀʏ.</i>\n\n` +
+      `2️⃣ <b>ᴅɪʀᴇᴄᴛ ᴄʜᴀɴɴᴇʟ ʀᴇǫᴜᴇsᴛ ʟɪɴᴋ:</b>\n` +
+      `<code>${channel.inviteLink || 'ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ'}</code>\n\n` +
+      `<i>✨ ᴜsᴇ ᴛʜᴇ 1-ᴛᴀᴘ ᴄᴏᴘʏ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ:</i>`;
 
     await ctx.editMessageText(text, {
       parse_mode: 'HTML',
       link_preview_options: { is_disabled: true },
-      reply_markup: AdminKeyboards.linksMenu(channel.channelId),
+      reply_markup: AdminKeyboards.linksMenu(channel.channelId, deepLink, channel.inviteLink),
     });
     return;
   }
@@ -285,17 +295,18 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
     const deepLink = LinkService.getBotDeepLink(me.username || '', channel.startPayload);
 
     const text =
-      `✨ <b>Fresh Short Link Generated!</b>\n\n` +
-      `📢 <b>Channel:</b> <b>${escapeHtml(channel.title)}</b>\n\n` +
-      `1️⃣ <b>Short Bot Deep-Link (Click to copy):</b>\n` +
+      `✨ <b>ғʀᴇsʜ sʜᴏʀᴛ ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ!</b>\n\n` +
+      `📢 <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b>\n\n` +
+      `1️⃣ <b>sʜᴏʀᴛ ʙᴏᴛ ʟɪɴᴋ:</b>\n` +
       `<code>${deepLink}</code>\n\n` +
-      `2️⃣ <b>Direct Channel Request Link:</b>\n` +
-      `<code>${channel.inviteLink || 'Not available'}</code>`;
+      `2️⃣ <b>ᴅɪʀᴇᴄᴛ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b>\n` +
+      `<code>${channel.inviteLink || 'ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ'}</code>\n\n` +
+      `<i>✨ ᴛᴀᴘ ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏᴘʏ ᴛʜᴇ ɴᴇᴡ ʟɪɴᴋ:</i>`;
 
     await ctx.editMessageText(text, {
       parse_mode: 'HTML',
       link_preview_options: { is_disabled: true },
-      reply_markup: AdminKeyboards.linksMenu(channel.channelId),
+      reply_markup: AdminKeyboards.linksMenu(channel.channelId, deepLink, channel.inviteLink),
     });
     return;
   }
@@ -342,11 +353,11 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
   if (data === 'admin_add_channel') {
     await setAdminSession(from.id, 'WAITING_CHANNEL_ID');
     await ctx.reply(
-      `➕ <b>Add Channel Setup</b>\n\n` +
-      `1. Make sure to add this bot to your Channel/Group as an <b>Administrator</b>.\n` +
-      `2. Grant the bot permission: <b>"Invite Users via Link"</b>.\n` +
-      `3. Now, send the <b>Channel ID</b> (e.g. <code>-1001234567890</code>) OR simply <b>forward any post</b> from that channel here.\n\n` +
-      `Send /cancel to return.`,
+      `➕ <b>ᴀᴅᴅ ᴄʜᴀɴɴᴇʟ sᴇᴛᴜᴘ</b>\n\n` +
+      `1. ᴀᴅᴅ ᴛʜɪs ʙᴏᴛ ᴛᴏ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴀs ᴀɴ <b>ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ</b>.\n` +
+      `2. ɢʀᴀɴᴛ ᴘᴇʀᴍɪssɪᴏɴ: <b>"ɪɴᴠɪᴛᴇ ᴜsᴇʀs ᴠɪᴀ ʟɪɴᴋ"</b>.\n` +
+      `3. sᴇɴᴅ ᴛʜᴇ <b>ᴄʜᴀɴɴᴇʟ ɪᴅ</b> (ᴇ.ɢ. <code>-1001234567890</code>) ᴏʀ <b>ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ</b> ғʀᴏᴍ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ʜᴇʀᴇ.\n\n` +
+      `<i>sᴇɴᴅ /cancel ᴛᴏ ʀᴇᴛᴜʀɴ.</i>`,
       { parse_mode: 'HTML' }
     );
     return;
@@ -357,14 +368,14 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
     const channels = await Channel.find();
     if (channels.length === 0) {
       await ctx.editMessageText(
-        '⚠️ You have not added any channels yet. Please add a channel first to generate links.',
+        '⚠️ ɴᴏ ᴄʜᴀɴɴᴇʟs ʜᴀᴠᴇ ʙᴇᴇɴ ᴄᴏɴɴᴇᴄᴛᴇᴅ ʏᴇᴛ. ᴘʟᴇᴀsᴇ ᴀᴅᴅ ᴀ ᴄʜᴀɴɴᴇʟ ғɪʀsᴛ.',
         { reply_markup: AdminKeyboards.backToHome() }
       );
       return;
     }
 
     await ctx.editMessageText(
-      '🔗 <b>Link Center</b>\n\nSelect a channel below to view or generate its links:',
+      '🔗 <b>ʟɪɴᴋ ᴄᴇɴᴛᴇʀ</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴄʜᴀɴɴᴇʟ ʙᴇʟᴏᴡ ᴛᴏ ᴠɪᴇᴡ ᴏʀ ᴄᴏᴘʏ ɪᴛs sʜᴏʀᴛ ʟɪɴᴋs:',
       {
         parse_mode: 'HTML',
         reply_markup: AdminKeyboards.channelListMenu(channels),
@@ -376,13 +387,13 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
   // 11. Log Channel Settings
   if (data === 'admin_log_settings') {
     const currentLogId = await LoggerService.getLogChannelId();
-    const statusText = currentLogId ? `<code>${currentLogId}</code>` : '<i>Not configured</i>';
+    const statusText = currentLogId ? `<code>${currentLogId}</code>` : '<i>ɴᴏᴛ ᴄᴏɴғɪɢᴜʀᴇᴅ</i>';
 
     const text =
-      `📋 <b>Log Channel Settings</b>\n\n` +
-      `• <b>Current Log Channel:</b> ${statusText}\n\n` +
-      `All user arrivals, join requests, auto-approvals, and administrative actions are logged in this channel in real time.\n\n` +
-      `To configure a Log Channel, add the bot to your private log channel as admin, then click <b>Set / Change Log Channel</b>.`;
+      `📋 <b>ʟᴏɢ ᴄʜᴀɴɴᴇʟ sᴇᴛᴛɪɴɢs</b>\n\n` +
+      `• <b>ᴄᴜʀʀᴇɴᴛ ʟᴏɢ ᴄʜᴀɴɴᴇʟ:</b> ${statusText}\n\n` +
+      `ᴀʟʟ ᴜsᴇʀ ᴀʀʀɪᴠᴀʟs, ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs, ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟs, ᴀɴᴅ ᴀᴅᴍɪɴ ᴀᴄᴛɪᴏɴs ᴀʀᴇ ʟᴏɢɢᴇᴅ ɪɴ ᴛʜɪs ᴄʜᴀɴɴᴇʟ ɪɴ ʀᴇᴀʟ ᴛɪᴍᴇ.\n\n` +
+      `ᴛᴏ ᴄᴏɴғɪɢᴜʀᴇ, ᴀᴅᴅ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ʏᴏᴜʀ ᴘʀɪᴠᴀᴛᴇ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ᴀs ᴀᴅᴍɪɴ, ᴛʜᴇɴ ᴄʟɪᴄᴋ <b>sᴇᴛ / ᴄʜᴀɴɢᴇ ʟᴏɢ ᴄʜᴀɴɴᴇʟ</b>.`;
 
     await ctx.editMessageText(text, {
       parse_mode: 'HTML',
@@ -395,21 +406,21 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
   if (data === 'test_log_channel') {
     const currentLogId = await LoggerService.getLogChannelId();
     if (!currentLogId) {
-      await ctx.reply('⚠️ No log channel configured.');
+      await ctx.reply('⚠️ ɴᴏ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ᴄᴏɴғɪɢᴜʀᴇᴅ.');
       return;
     }
 
     try {
       await ctx.api.sendMessage(
         currentLogId,
-        `🧪 <b>Test Log Record</b>\n\n` +
-        `• <b>Triggered By:</b> <a href="tg://user?id=${from.id}">${escapeHtml(from.first_name)}</a> (<code>${from.id}</code>)\n` +
-        `• <b>Status:</b> ✅ Log delivery is working perfectly!`,
+        `🧪 <b>ᴛᴇsᴛ ʟᴏɢ ʀᴇᴄᴏʀᴅ</b>\n\n` +
+        `• <b>ᴛʀɪɢɢᴇʀᴇᴅ ʙʏ:</b> <a href="tg://user?id=${from.id}">${escapeHtml(from.first_name)}</a> (<code>${from.id}</code>)\n` +
+        `• <b>sᴛᴀᴛᴜs:</b> ✅ ʟᴏɢ ᴅᴇʟɪᴠᴇʀʏ ɪs ᴡᴏʀᴋɪɴɢ ᴘᴇʀғᴇᴄᴛʟʏ!`,
         { parse_mode: 'HTML' }
       );
-      await ctx.reply('✅ Test log successfully sent to log channel!');
+      await ctx.reply('✅ ᴛᴇsᴛ ʟᴏɢ sᴜᴄᴄᴇssғᴜʟʟʏ sᴇɴᴛ ᴛᴏ ʟᴏɢ ᴄʜᴀɴɴᴇʟ!');
     } catch (err: any) {
-      await ctx.reply(`❌ Failed to send test log: ${err.message}`);
+      await ctx.reply(`❌ ғᴀɪʟᴇᴅ ᴛᴏ sᴇɴᴅ ᴛᴇsᴛ ʟᴏɢ: ${err.message}`);
     }
     return;
   }
@@ -418,10 +429,10 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
   if (data === 'set_log_channel') {
     await setAdminSession(from.id, 'WAITING_LOG_CHANNEL_ID');
     await ctx.reply(
-      `📋 <b>Set Log Channel</b>\n\n` +
-      `1. Add this bot to your Log Channel as an Administrator with <b>"Send Messages"</b> permission.\n` +
-      `2. Send the <b>Log Channel ID</b> (e.g. <code>-1001234567890</code>) or <b>forward a post</b> from the log channel here.\n\n` +
-      `Send /cancel to return.`,
+      `📋 <b>sᴇᴛ ʟᴏɢ ᴄʜᴀɴɴᴇʟ</b>\n\n` +
+      `1. ᴀᴅᴅ ᴛʜɪs ʙᴏᴛ ᴛᴏ ʏᴏᴜʀ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ᴀs ᴀɴ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ᴡɪᴛʜ <b>"sᴇɴᴅ ᴍᴇssᴀɢᴇs"</b> ᴘᴇʀᴍɪssɪᴏɴ.\n` +
+      `2. sᴇɴᴅ ᴛʜᴇ <b>ʟᴏɢ ᴄʜᴀɴɴᴇʟ ɪᴅ</b> (ᴇ.ɢ. <code>-1001234567890</code>) ᴏʀ <b>ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ</b> ғʀᴏᴍ ᴛʜᴇ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ʜᴇʀᴇ.\n\n` +
+      `<i>sᴇɴᴅ /cancel ᴛᴏ ʀᴇᴛᴜʀɴ.</i>`,
       { parse_mode: 'HTML' }
     );
     return;
@@ -432,9 +443,9 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
     const userCount = await User.countDocuments();
     await setAdminSession(from.id, 'WAITING_BROADCAST_MSG');
     await ctx.reply(
-      `📣 <b>Broadcast Message</b>\n\n` +
-      `Total audience: <b>${userCount} users</b>.\n\n` +
-      `Please reply with the message you would like to broadcast (text, photo, markdown, HTML supported).\nSend /cancel to abort.`,
+      `📣 <b>ʙʀᴏᴀᴅᴄᴀsᴛ ᴍᴇssᴀɢᴇ</b>\n\n` +
+      `ᴛᴏᴛᴀʟ ᴀᴜᴅɪᴇɴᴄᴇ: <b>${userCount} ᴜsᴇʀs</b>.\n\n` +
+      `ᴘʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴡɪᴛʜ ᴛʜᴇ ᴍᴇssᴀɢᴇ ʏᴏᴜ ᴡᴏᴜʟᴅ ʟɪᴋᴇ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ (ᴛᴇxᴛ, ᴘʜᴏᴛᴏ, ᴍᴀʀᴋᴅᴏᴡɴ, ʜᴛᴍʟ sᴜᴘᴘᴏʀᴛᴇᴅ).\n<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`,
       { parse_mode: 'HTML' }
     );
     return;
@@ -497,11 +508,15 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
       return true;
     }
 
-    const addingMsg = await ctx.reply('⏳ Validating bot permissions and setting up channel...');
-    const result = await ChannelService.addChannel(ctx as any, targetChannelId);
+    const addingMsg = await ctx.reply('⏳ ᴠᴀʟɪᴅᴀᴛɪɴɢ ʙᴏᴛ ᴘᴇʀᴍɪssɪᴏɴs ᴀɴᴅ sᴇᴛᴛɪɴɢ ᴜᴘ ᴄʜᴀɴɴᴇʟ...');
+    const result = await ChannelService.addChannel(ctx as any, targetChannelId, {
+      id: from.id,
+      name: from.first_name,
+      username: from.username,
+    });
 
     if (!result.success || !result.channel) {
-      await ctx.api.editMessageText(ctx.chat!.id, addingMsg.message_id, `❌ <b>Setup Failed:</b>\n${result.error}`, {
+      await ctx.api.editMessageText(ctx.chat!.id, addingMsg.message_id, `❌ <b>sᴇᴛᴜᴘ ғᴀɪʟᴇᴅ:</b>\n${result.error}`, {
         parse_mode: 'HTML',
       });
       return true;
@@ -515,16 +530,18 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
     await ctx.api.editMessageText(
       ctx.chat!.id,
       addingMsg.message_id,
-      `🎉 <b>Channel Added Successfully!</b>\n\n` +
-      `• <b>Title:</b> <b>${escapeHtml(result.channel.title)}</b>\n` +
-      `• <b>ID:</b> <code>${result.channel.channelId}</code>\n` +
-      `• <b>Auto-Approve:</b> ✅ Enabled\n\n` +
-      `🔗 <b>Your Generated Bot Deep-Link:</b>\n<code>${deepLink}</code>\n\n` +
-      `📨 <b>Direct Join Request Link:</b>\n<code>${result.channel.inviteLink}</code>`,
+      `🎉 <b>ᴄʜᴀɴɴᴇʟ ᴀᴅᴅᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ!</b>\n\n` +
+      `• <b>ᴛɪᴛʟᴇ:</b> <b>${escapeHtml(result.channel.title)}</b>\n` +
+      `• <b>ɪᴅ:</b> <code>${result.channel.channelId}</code>\n` +
+      `• <b>ᴀᴅᴅᴇᴅ ʙʏ:</b> ${escapeHtml(from.first_name)} (<code>${from.id}</code>)\n` +
+      `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ:</b> ✅ ᴇɴᴀʙʟᴇᴅ\n\n` +
+      `🔗 <b>sʜᴏʀᴛ ʙᴏᴛ ʟɪɴᴋ:</b>\n<code>${deepLink}</code>\n\n` +
+      `📨 <b>ᴅɪʀᴇᴄᴛ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b>\n<code>${result.channel.inviteLink}</code>\n\n` +
+      `<i>✨ ᴛᴀᴘ ᴛʜᴇ ᴄᴏᴘʏ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ɪɴsᴛᴀɴᴛʟʏ ᴄᴏᴘʏ ᴛʜᴇ ʟɪɴᴋ:</i>`,
       {
         parse_mode: 'HTML',
         link_preview_options: { is_disabled: true },
-        reply_markup: AdminKeyboards.channelDetailMenu(result.channel),
+        reply_markup: AdminKeyboards.channelDetailMenu(result.channel, deepLink),
       }
     );
 

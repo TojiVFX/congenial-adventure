@@ -9,6 +9,9 @@ export interface IChannel extends Document {
   autoApproveEnabled: boolean;
   welcomeMessage?: string;
   welcomeMedia?: string;
+  addedByUserId?: number;
+  addedByUserName?: string;
+  addedByUserUsername?: string;
   totalRequests: number;
   totalApproved: number;
   createdAt: Date;
@@ -25,6 +28,9 @@ const ChannelSchema: Schema = new Schema(
     autoApproveEnabled: { type: Boolean, default: true },
     welcomeMessage: { type: String },
     welcomeMedia: { type: String },
+    addedByUserId: { type: Number },
+    addedByUserName: { type: String },
+    addedByUserUsername: { type: String },
     totalRequests: { type: Number, default: 0 },
     totalApproved: { type: Number, default: 0 },
   },

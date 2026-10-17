@@ -6,9 +6,10 @@ export interface CommandDefinition {
 }
 
 export const BOT_COMMANDS: CommandDefinition[] = [
-  { command: 'start', description: 'Start the bot & get invite link' },
-  { command: 'help', description: 'Guide & instructions on how to use' },
-  { command: 'admin', description: 'Admin Control Dashboard' },
+  { command: 'start', description: 'sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ & ɢᴇᴛ ɪɴᴠɪᴛᴇ ʟɪɴᴋ' },
+  { command: 'help', description: 'ɢᴜɪᴅᴇ & ɪɴsᴛʀᴜᴄᴛɪᴏɴs ᴏɴ ʜᴏᴡ ᴛᴏ ᴜsᴇ' },
+  { command: 'contact', description: 'ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴ ᴛᴏ ᴀᴅᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ' },
+  { command: 'admin', description: 'ᴀᴅᴍɪɴ ᴄᴏɴᴛʀᴏʟ ᴅᴀsʜʙᴏᴀʀᴅ' },
 ];
 
 /**

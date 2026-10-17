@@ -3,20 +3,20 @@ import { IChannel } from '../../db/models/Channel.js';
 
 export class AdminKeyboards {
   /**
-   * Main Admin Dashboard Menu
+   * Main Admin Dashboard Menu (Manual Smallcaps)
    */
   static mainMenu(): InlineKeyboard {
     return new InlineKeyboard()
-      .text('📊 Analytics & Stats', 'admin_stats')
-      .text('📢 Manage Channels', 'admin_channels')
+      .text('📊 ᴀɴᴀʟʏᴛɪᴄs & sᴛᴀᴛs', 'admin_stats')
+      .text('📢 ᴍᴀɴᴀɢᴇ ᴄʜᴀɴɴᴇʟs', 'admin_channels')
       .row()
-      .text('🔗 Link Center', 'admin_gen_link')
-      .text('📋 Log Channel', 'admin_log_settings')
+      .text('🔗 ʟɪɴᴋ ᴄᴇɴᴛᴇʀ', 'admin_gen_link')
+      .text('📋 ʟᴏɢ ᴄʜᴀɴɴᴇʟ', 'admin_log_settings')
       .row()
-      .text('📣 Broadcast Message', 'admin_broadcast')
-      .text('⚡ Sync Commands', 'admin_sync_commands')
+      .text('📣 ʙʀᴏᴀᴅᴄᴀsᴛ ᴍᴇssᴀɢᴇ', 'admin_broadcast')
+      .text('⚡ sʏɴᴄ ᴄᴏᴍᴍᴀɴᴅs', 'admin_sync_commands')
       .row()
-      .text('🔄 Refresh Dashboard', 'admin_refresh');
+      .text('🔄 ʀᴇғʀᴇsʜ ᴅᴀsʜʙᴏᴀʀᴅ', 'admin_refresh');
   }
 
   /**
@@ -30,9 +30,9 @@ export class AdminKeyboards {
       kb.text(`${statusIcon} ${ch.title}`, `channel_view_${ch.channelId}`).row();
     }
 
-    kb.text('➕ Add New Channel', 'admin_add_channel')
+    kb.text('➕ ᴀᴅᴅ ɴᴇᴡ ᴄʜᴀɴɴᴇʟ', 'admin_add_channel')
       .row()
-      .text('🔙 Back to Dashboard', 'admin_home');
+      .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴅᴀsʜʙᴏᴀʀᴅ', 'admin_home');
 
     return kb;
   }
@@ -40,44 +40,67 @@ export class AdminKeyboards {
   /**
    * Single Channel Settings & Action Menu
    */
-  static channelDetailMenu(channel: IChannel): InlineKeyboard {
+  static channelDetailMenu(channel: IChannel, deepLink?: string): InlineKeyboard {
     const toggleText = channel.autoApproveEnabled
-      ? '✅ Auto-Approve: ON (Click to Disable)'
-      : '⏸️ Auto-Approve: OFF (Click to Enable)';
+      ? '✅ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ: ᴏɴ (ᴄʟɪᴄᴋ ᴛᴏ ᴅɪsᴀʙʟᴇ)'
+      : '⏸️ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ: ᴏғғ (ᴄʟɪᴄᴋ ᴛᴏ ᴇɴᴀʙʟᴇ)';
 
-    return new InlineKeyboard()
+    const kb = new InlineKeyboard()
       .text(toggleText, `toggle_approve_${channel.channelId}`)
+      .row();
+
+    // If deepLink is provided, add premium 1-tap copy button
+    if (deepLink) {
+      kb.copyText('📋 ᴄᴏᴘʏ ʙᴏᴛ ʟɪɴᴋ', deepLink);
+      if (channel.inviteLink) {
+        kb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', channel.inviteLink);
+      }
+      kb.row();
+    }
+
+    kb.text('🔗 ᴠɪᴇᴡ ᴀʟʟ ʟɪɴᴋs', `view_links_${channel.channelId}`)
+      .text('🔄 ɴᴇᴡ sʜᴏʀᴛ ʟɪɴᴋ', `regen_link_${channel.channelId}`)
       .row()
-      .text('🔗 View / Copy Links', `view_links_${channel.channelId}`)
+      .text('✏️ ᴇᴅɪᴛ ᴡᴇʟᴄᴏᴍᴇ ᴍᴇssᴀɢᴇ', `edit_welcome_${channel.channelId}`)
+      .text('🗑️ ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ', `delete_channel_${channel.channelId}`)
       .row()
-      .text('✏️ Edit Welcome Message', `edit_welcome_${channel.channelId}`)
-      .text('🗑️ Remove Channel', `delete_channel_${channel.channelId}`)
-      .row()
-      .text('🔙 Back to Channels', 'admin_channels');
+      .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴄʜᴀɴɴᴇʟs', 'admin_channels');
+
+    return kb;
   }
 
   /**
-   * Links Menu with Regenerate Action
+   * Links Menu with Premium 1-Tap Copy Text Buttons
    */
-  static linksMenu(channelId: number): InlineKeyboard {
-    return new InlineKeyboard()
-      .text('🔄 Generate New Short Link', `regen_link_${channelId}`)
+  static linksMenu(channelId: number, deepLink: string, inviteLink?: string): InlineKeyboard {
+    const kb = new InlineKeyboard();
+
+    // Premium Telegram native 1-tap Copy Text button
+    kb.copyText('📋 ᴄᴏᴘʏ ʙᴏᴛ ʟɪɴᴋ', deepLink).row();
+
+    if (inviteLink) {
+      kb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', inviteLink).row();
+    }
+
+    kb.text('🔄 ɢᴇɴᴇʀᴀᴛᴇ ɴᴇᴡ sʜᴏʀᴛ ʟɪɴᴋ', `regen_link_${channelId}`)
       .row()
-      .text('🔙 Back to Channel', `channel_view_${channelId}`);
+      .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴄʜᴀɴɴᴇʟ', `channel_view_${channelId}`);
+
+    return kb;
   }
 
   /**
    * Back button to Main Dashboard
    */
   static backToHome(): InlineKeyboard {
-    return new InlineKeyboard().text('🔙 Back to Dashboard', 'admin_home');
+    return new InlineKeyboard().text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴅᴀsʜʙᴏᴀʀᴅ', 'admin_home');
   }
 
   /**
    * Back button to Channel List
    */
   static backToChannels(): InlineKeyboard {
-    return new InlineKeyboard().text('🔙 Back to Channels', 'admin_channels');
+    return new InlineKeyboard().text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴄʜᴀɴɴᴇʟs', 'admin_channels');
   }
 
   /**
@@ -86,11 +109,11 @@ export class AdminKeyboards {
   static logChannelMenu(hasChannel: boolean): InlineKeyboard {
     const kb = new InlineKeyboard();
     if (hasChannel) {
-      kb.text('🧪 Send Test Log', 'test_log_channel').row();
+      kb.text('🧪 sᴇɴᴅ ᴛᴇsᴛ ʟᴏɢ', 'test_log_channel').row();
     }
-    kb.text('✏️ Set / Change Log Channel', 'set_log_channel')
+    kb.text('✏️ sᴇᴛ / ᴄʜᴀɴɢᴇ ʟᴏɢ ᴄʜᴀɴɴᴇʟ', 'set_log_channel')
       .row()
-      .text('🔙 Back to Dashboard', 'admin_home');
+      .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴅᴀsʜʙᴏᴀʀᴅ', 'admin_home');
     return kb;
   }
 }

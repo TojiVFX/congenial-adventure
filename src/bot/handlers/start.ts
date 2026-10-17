@@ -69,15 +69,17 @@ export async function handleStart(ctx: Context): Promise<void> {
 
   // 6. Present the Join Request Button to the user
   const inviteLink = channel.inviteLink || `https://t.me/${channel.username || ''}`;
-  const keyboard = new InlineKeyboard().url('🚀 Request to Join Channel', inviteLink);
+  const keyboard = new InlineKeyboard()
+    .url('🚀 ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ', inviteLink)
+    .row();
 
   const greeting = channel.welcomeMessage
     ? `${channel.welcomeMessage}\n\n`
-    : `Tap the button below to submit your join request. You will be approved automatically!`;
+    : `ᴛᴀᴘ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ sᴜʙᴍɪᴛ ʏᴏᴜʀ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛ. ʏᴏᴜ ᴡɪʟʟ ʙᴇ ᴀᴘᴘʀᴏᴠᴇᴅ ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ!`;
 
   const replyText =
-    `✨ <b>Channel Invitation</b>\n\n` +
-    `You have been invited to join <b>${escapeHtml(channel.title)}</b>.\n\n` +
+    `✨ <b>ᴄʜᴀɴɴᴇʟ ɪɴᴠɪᴛᴀᴛɪᴏɴ</b>\n\n` +
+    `ʏᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ɪɴᴠɪᴛᴇᴅ ᴛᴏ ᴊᴏɪɴ <b>${escapeHtml(channel.title)}</b>.\n\n` +
     `${greeting}`;
 
   await ctx.reply(replyText, {
@@ -88,14 +90,15 @@ export async function handleStart(ctx: Context): Promise<void> {
 
 export async function handleHelp(ctx: Context): Promise<void> {
   const text =
-    `💡 <b>How to Use This Bot</b>\n\n` +
-    `• <b>For Channel Members:</b>\n` +
-    `  Click the invite or deep link provided by the channel owner. Start the bot and tap <b>Request to Join Channel</b> to be automatically approved!\n\n` +
-    `• <b>For Channel Administrators:</b>\n` +
-    `  1. Add this bot to your channel as an Administrator with <i>Invite Users via Link</i> rights.\n` +
-    `  2. Send /admin to connect your channel, toggle auto-approval, and generate shareable links.\n` +
-    `  3. Configure a Log Channel to record all join requests in real time.\n\n` +
-    `Need more help? Type /admin if you are an authorized administrator.`;
+    `💡 <b>ʜᴏᴡ ᴛᴏ ᴜsᴇ ᴛʜɪs ʙᴏᴛ</b>\n\n` +
+    `• <b>ғᴏʀ ᴄʜᴀɴɴᴇʟ ᴍᴇᴍʙᴇʀs:</b>\n` +
+    `  ᴄʟɪᴄᴋ ᴛʜᴇ ɪɴᴠɪᴛᴇ ᴏʀ ᴅᴇᴇᴘ ʟɪɴᴋ ᴘʀᴏᴠɪᴅᴇᴅ ʙʏ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ᴏᴡɴᴇʀ. sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ ᴀɴᴅ ᴛᴀᴘ <b>ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ</b> ᴛᴏ ɢᴇᴛ ɪɴsᴛᴀɴᴛ ᴀᴄᴄᴇss!\n\n` +
+    `• <b>ᴡᴀɴᴛ ᴛᴏ ᴀᴅᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ?</b>\n` +
+    `  sᴇɴᴅ /contact ᴛᴏ sᴜʙᴍɪᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴅᴇᴛᴀɪʟs ᴅɪʀᴇᴄᴛʟʏ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n\n` +
+    `• <b>ғᴏʀ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs:</b>\n` +
+    `  1. ᴀᴅᴅ ᴛʜɪs ʙᴏᴛ ᴛᴏ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴀs ᴀɴ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ᴡɪᴛʜ <i>ɪɴᴠɪᴛᴇ ᴜsᴇʀs ᴠɪᴀ ʟɪɴᴋ</i> ʀɪɢʜᴛs.\n` +
+    `  2. sᴇɴᴅ /admin ᴛᴏ ᴏᴘᴇɴ ʏᴏᴜʀ ᴄᴏɴᴛʀᴏʟ ᴅᴀsʜʙᴏᴀʀᴅ, ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ, ᴀɴᴅ ɢᴇɴᴇʀᴀᴛᴇ sʜᴏʀᴛ ʟɪɴᴋs.\n` +
+    `  3. sᴇᴛ ᴜᴘ ᴀ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴋᴇᴇᴘ ᴛʀᴀᴄᴋ ᴏғ ᴀʟʟ ᴀᴄᴛɪᴏɴs ɪɴ ʀᴇᴀʟ ᴛɪᴍᴇ.`;
 
   await ctx.reply(text, { parse_mode: 'HTML' });
 }

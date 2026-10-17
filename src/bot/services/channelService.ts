@@ -59,7 +59,8 @@ export class ChannelService {
    */
   static async addChannel(
     bot: Bot,
-    channelId: number
+    channelId: number,
+    addedBy?: { id: number; name: string; username?: string }
   ): Promise<{ success: boolean; channel?: IChannel; error?: string }> {
     const validation = await this.validateBotPermissions(bot, channelId);
     if (!validation.valid || !validation.title) {
@@ -81,12 +82,20 @@ export class ChannelService {
           inviteLink,
           startPayload,
           autoApproveEnabled: true,
-          welcomeMessage: '🎉 Welcome to the channel! Your request has been approved.',
+          welcomeMessage: '✨ Welcome to the channel! Your request has been approved.',
+          addedByUserId: addedBy?.id,
+          addedByUserName: addedBy?.name,
+          addedByUserUsername: addedBy?.username,
         });
       } else {
         channel.title = validation.title;
         channel.username = validation.username;
         channel.inviteLink = inviteLink;
+        if (addedBy) {
+          channel.addedByUserId = addedBy.id;
+          channel.addedByUserName = addedBy.name;
+          channel.addedByUserUsername = addedBy.username;
+        }
         if (!channel.startPayload || !channel.startPayload.startsWith('inv_')) {
           channel.startPayload = startPayload;
         }

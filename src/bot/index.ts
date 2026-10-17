@@ -2,6 +2,7 @@ import { Bot, webhookCallback } from 'grammy';
 import { config, validateConfig } from '../config.js';
 import { connectDB } from '../db/connection.js';
 import { handleStart, handleHelp } from './handlers/start.js';
+import { handleContactCommand, handleContactMessage } from './handlers/contact.js';
 import { handleChatJoinRequest } from './handlers/joinRequest.js';
 import {
   handleAdminCommand,
@@ -29,6 +30,7 @@ bot.use(async (ctx, next) => {
 // Commands
 bot.command('start', handleStart);
 bot.command('help', handleHelp);
+bot.command(['contact', 'request', 'addchannel'], handleContactCommand);
 bot.command(['admin', 'dashboard', 'panel'], handleAdminCommand);
 
 // Join Requests: Auto-Approval & Logging
@@ -37,12 +39,15 @@ bot.on('chat_join_request', handleChatJoinRequest);
 // Callback Queries (Admin Dashboard Navigation & Toggles)
 bot.on('callback_query:data', handleAdminCallback);
 
-// Admin Text / Forward Input Listener (Sessions)
+// Text & Forward Input Listener (Admin Sessions & Contact Submissions)
 bot.on('message', async (ctx, next) => {
-  const handled = await handleAdminInput(ctx);
-  if (!handled) {
-    await next();
-  }
+  const handledAdmin = await handleAdminInput(ctx);
+  if (handledAdmin) return;
+
+  const handledContact = await handleContactMessage(ctx);
+  if (handledContact) return;
+
+  await next();
 });
 
 // Catch-all error handler

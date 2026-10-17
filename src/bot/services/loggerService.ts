@@ -41,17 +41,17 @@ export class LoggerService {
     user: { id: number; firstName: string; username?: string },
     payload?: string
   ): Promise<void> {
-    const usernameDisplay = user.username ? `@${user.username}` : '<i>None</i>';
-    const payloadDisplay = payload ? `<code>${payload}</code>` : '<i>Direct / None</i>';
+    const usernameDisplay = user.username ? `@${user.username}` : '<i>ɴᴏɴᴇ</i>';
+    const payloadDisplay = payload ? `<code>${payload}</code>` : '<i>ᴅɪʀᴇᴄᴛ / ɴᴏɴᴇ</i>';
     const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     const text =
-      `👤 <b>New User Started Bot</b>\n\n` +
-      `• <b>Name:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a>\n` +
-      `• <b>Username:</b> ${usernameDisplay}\n` +
-      `• <b>User ID:</b> <code>${user.id}</code>\n` +
-      `• <b>Start Payload:</b> ${payloadDisplay}\n` +
-      `• <b>Timestamp:</b> <code>${time} UTC</code>`;
+      `👤 <b>ɴᴇᴡ ᴜsᴇʀ sᴛᴀʀᴛᴇᴅ ʙᴏᴛ</b>\n\n` +
+      `• <b>ɴᴀᴍᴇ:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a>\n` +
+      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${usernameDisplay}\n` +
+      `• <b>ᴜsᴇʀ ɪᴅ:</b> <code>${user.id}</code>\n` +
+      `• <b>sᴛᴀʀᴛ ᴘᴀʏʟᴏᴀᴅ:</b> ${payloadDisplay}\n` +
+      `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
 
     await this.sendLog(bot, text);
   }
@@ -64,17 +64,17 @@ export class LoggerService {
     user: { id: number; firstName: string; username?: string },
     channel: { id: number; title: string }
   ): Promise<void> {
-    const usernameDisplay = user.username ? `@${user.username}` : '<i>None</i>';
+    const usernameDisplay = user.username ? `@${user.username}` : '<i>ɴᴏɴᴇ</i>';
     const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     const text =
-      `🟢 <b>Join Request Approved</b>\n\n` +
-      `• <b>Channel:</b> <b>${escapeHtml(channel.title)}</b> (<code>${channel.id}</code>)\n` +
-      `• <b>User:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a>\n` +
-      `• <b>Username:</b> ${usernameDisplay}\n` +
-      `• <b>User ID:</b> <code>${user.id}</code>\n` +
-      `• <b>Status:</b> ✅ <b>Approved Automatically</b>\n` +
-      `• <b>Timestamp:</b> <code>${time} UTC</code>`;
+      `🟢 <b>ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛ ᴀᴘᴘʀᴏᴠᴇᴅ</b>\n\n` +
+      `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b> (<code>${channel.id}</code>)\n` +
+      `• <b>ᴜsᴇʀ:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a>\n` +
+      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${usernameDisplay}\n` +
+      `• <b>ᴜsᴇʀ ɪᴅ:</b> <code>${user.id}</code>\n` +
+      `• <b>sᴛᴀᴛᴜs:</b> ✅ <b>ᴀᴘᴘʀᴏᴠᴇᴅ ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ</b>\n` +
+      `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
 
     await this.sendLog(bot, text);
   }
@@ -87,17 +87,17 @@ export class LoggerService {
     user: { id: number; firstName: string; username?: string },
     channel: { id: number; title: string }
   ): Promise<void> {
-    const usernameDisplay = user.username ? `@${user.username}` : '<i>None</i>';
+    const usernameDisplay = user.username ? `@${user.username}` : '<i>ɴᴏɴᴇ</i>';
     const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     const text =
-      `🟡 <b>Join Request Pending (Auto-Approve Disabled)</b>\n\n` +
-      `• <b>Channel:</b> <b>${escapeHtml(channel.title)}</b> (<code>${channel.id}</code>)\n` +
-      `• <b>User:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a>\n` +
-      `• <b>Username:</b> ${usernameDisplay}\n` +
-      `• <b>User ID:</b> <code>${user.id}</code>\n` +
-      `• <b>Status:</b> ⏳ <b>Left Pending</b> (Approval disabled for this channel)\n` +
-      `• <b>Timestamp:</b> <code>${time} UTC</code>`;
+      `🟡 <b>ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛ ᴘᴇɴᴅɪɴɢ (ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ ᴅɪsᴀʙʟᴇᴅ)</b>\n\n` +
+      `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b> (<code>${channel.id}</code>)\n` +
+      `• <b>ᴜsᴇʀ:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a>\n` +
+      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${usernameDisplay}\n` +
+      `• <b>ᴜsᴇʀ ɪᴅ:</b> <code>${user.id}</code>\n` +
+      `• <b>sᴛᴀᴛᴜs:</b> ⏳ <b>ʟᴇғᴛ ᴘᴇɴᴅɪɴɢ</b>\n` +
+      `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
 
     await this.sendLog(bot, text);
   }
@@ -114,10 +114,10 @@ export class LoggerService {
     const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     const text =
-      `📢 <b>Channel Action: ${escapeHtml(action)}</b>\n\n` +
-      `• <b>Channel:</b> <b>${escapeHtml(channel.title)}</b> (<code>${channel.id}</code>)\n` +
-      `• <b>Performed By Admin:</b> <code>${adminId}</code>\n` +
-      `• <b>Timestamp:</b> <code>${time} UTC</code>`;
+      `📢 <b>ᴄʜᴀɴɴᴇʟ ᴀᴄᴛɪᴏɴ: ${escapeHtml(action)}</b>\n\n` +
+      `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b> (<code>${channel.id}</code>)\n` +
+      `• <b>ᴘᴇʀғᴏʀᴍᴇᴅ ʙʏ ᴀᴅᴍɪɴ:</b> <code>${adminId}</code>\n` +
+      `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
 
     await this.sendLog(bot, text);
   }
