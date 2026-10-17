@@ -1,5 +1,6 @@
 import { Context, InlineKeyboard } from 'grammy';
 import { Channel, IChannel } from '../../db/models/Channel.js';
+import { User } from '../../db/models/User.js';
 import { config } from '../../config.js';
 import {
   getGlobalSettings,
@@ -12,6 +13,7 @@ import { LinkService } from '../services/linkService.js';
 import { LoggerService } from '../services/loggerService.js';
 import { isAdmin } from './admin.js';
 import { handleContactCommand } from './contact.js';
+import { renderStartMenu } from './start.js';
 
 /**
  * Helper to edit existing prompt message or fallback to reply
@@ -57,8 +59,9 @@ export async function handleManageChatCommand(ctx: Context): Promise<void> {
       `• <b>ᴘʀɪᴠᴀᴄʏ:</b> ʏᴏᴜ ᴍᴀɪɴᴛᴀɪɴ ғᴜʟʟ ᴄᴏɴᴛʀᴏʟ ᴏᴠᴇʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ sᴇᴛᴛɪɴɢs.`;
 
     kb = new InlineKeyboard()
-      .text('➕ ᴀᴅᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ', 'user_chan_add')
-      .row();
+      .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+      .row()
+      .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
   } else {
     const rendered = renderUserChannelList(channels);
     text = rendered.text;
@@ -110,9 +113,10 @@ function renderUserChannelList(channels: IChannel[]): { text: string; keyboard: 
     kb.text(`${prefix} ${ch.title}${suffix}`, callback).row();
   }
 
-  kb.text('➕ ᴀᴅᴅ ɴᴇᴡ ᴄʜᴀɴɴᴇʟ', 'user_chan_add')
+  kb.text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
     .text('🔄 ʀᴇғʀᴇsʜ', 'user_chan_list')
-    .row();
+    .row()
+    .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
 
   return { text, keyboard: kb };
 }
@@ -199,6 +203,85 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
     return;
   }
 
+  // 1c. Return to Main Start Menu
+  if (data === 'user_chan_menu') {
+    await ctx.answerCallbackQuery();
+    await clearAdminSession(from.id);
+    const { text, keyboard } = renderStartMenu(from.first_name, false);
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: keyboard });
+    return;
+  }
+
+  // 1d. User Profile View
+  if (data === 'user_chan_profile') {
+    await ctx.answerCallbackQuery();
+    await clearAdminSession(from.id);
+
+    const user = await User.findOne({ userId: from.id });
+    const channels = await Channel.find({ addedByUserId: from.id });
+
+    const memberSince = user?.createdAt
+      ? user.createdAt.toISOString().substring(0, 10)
+      : new Date().toISOString().substring(0, 10);
+
+    const totalApproved = channels.reduce((sum, ch) => sum + (ch.totalApproved || 0), 0);
+    const totalRequests = channels.reduce((sum, ch) => sum + (ch.totalRequests || 0), 0);
+    const approvedChannels = channels.filter(ch => ch.status === 'approved').length;
+    const pendingChannels = channels.filter(ch => ch.status === 'pending').length;
+
+    const usernameDisplay = from.username ? `@${from.username}` : '<i>ɴᴏɴᴇ</i>';
+
+    const profileText =
+      `👤 <b>ʏᴏᴜʀ ᴘʀᴏғɪʟᴇ</b>\n\n` +
+      `• <b>ɴᴀᴍᴇ:</b> ${escapeHtml(from.first_name)}${from.last_name ? ' ' + escapeHtml(from.last_name) : ''}\n` +
+      `• <b>ᴜsᴇʀ ɪᴅ:</b> <code>${from.id}</code>\n` +
+      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${usernameDisplay}\n` +
+      `• <b>ᴀᴄᴄᴏᴜɴᴛ sᴛᴀᴛᴜs:</b> ✅ <b>ᴀᴄᴛɪᴠᴇ</b>\n` +
+      `• <b>ᴍᴇᴍʙᴇʀ sɪɴᴄᴇ:</b> <code>${memberSince}</code>\n\n` +
+      `📊 <b>ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ sᴛᴀᴛɪsᴛɪᴄs:</b>\n` +
+      `• <b>ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴄʜᴀɴɴᴇʟs:</b> <code>${channels.length}</code> (${approvedChannels} ᴀᴘᴘʀᴏᴠᴇᴅ${pendingChannels > 0 ? `, ${pendingChannels} ᴘᴇɴᴅɪɴɢ` : ''})\n` +
+      `• <b>ᴛᴏᴛᴀʟ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs:</b> <code>${totalRequests}</code>\n` +
+      `• <b>ᴛᴏᴛᴀʟ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${totalApproved}</code>\n\n` +
+      `<i>💡 ᴛᴀᴘ ʙᴇʟᴏᴡ ᴛᴏ sᴜʙᴍɪᴛ ᴏʀ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs.</i>`;
+
+    const profileKb = new InlineKeyboard()
+      .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+      .text('⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list')
+      .row()
+      .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
+
+    await ctx.editMessageText(profileText, { parse_mode: 'HTML', reply_markup: profileKb });
+    return;
+  }
+
+  // 1e. About Bot View
+  if (data === 'user_chan_about') {
+    await ctx.answerCallbackQuery();
+    await clearAdminSession(from.id);
+
+    const aboutText =
+      `ℹ️ <b>ᴀʙᴏᴜᴛ ᴛʜɪs ʙᴏᴛ</b>\n\n` +
+      `⚡ <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ɢᴀᴛᴇᴡᴀʏ</b>\n` +
+      `ᴛʜɪs ʙᴏᴛ ᴘʀᴏᴠɪᴅᴇs ɪɴsᴛᴀɴᴛ, ᴀᴜᴛᴏᴍᴀᴛᴇᴅ ᴊᴏɪɴ-ʀᴇǫᴜᴇsᴛ ᴀᴘᴘʀᴏᴠᴀʟs ғᴏʀ ᴘʀɪᴠᴀᴛᴇ ᴛᴇʟᴇɢʀᴀᴍ ᴄʜᴀɴɴᴇʟs ᴀɴᴅ sᴜᴘᴇʀɢʀᴏᴜᴘs.\n\n` +
+      `✨ <b>ᴋᴇʏ ғᴇᴀᴛᴜʀᴇs:</b>\n` +
+      `• ⚡ <b>ɪɴsᴛᴀɴᴛ ᴀᴘᴘʀᴏᴠᴀʟ:</b> ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇs ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs ɪɴ ᴍɪʟʟɪsᴇᴄᴏɴᴅs.\n` +
+      `• 🔗 <b>ᴘʀᴇᴍɪᴜᴍ sʜᴏʀᴛ ʟɪɴᴋs:</b> ᴄʟᴇᴀɴ ᴅᴇᴇᴘ-ʟɪɴᴋs (<code>inv_XXXXXXXX</code>) ғᴏʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ.\n` +
+      `• 🛡️ <b>ᴜsᴇʀ ᴘʀɪᴠᴀᴄʏ:</b> ʏᴏᴜ ʀᴇᴛᴀɪɴ ᴄᴏᴍᴘʟᴇᴛᴇ ᴄᴏɴᴛʀᴏʟ ᴏᴠᴇʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ sᴇᴛᴛɪɴɢs.\n` +
+      `• 🎛️ <b>sᴇʟғ-sᴇʀᴠɪᴄᴇ ᴄᴏɴᴛʀᴏʟs:</b> ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ, ʀᴇɢᴇɴᴇʀᴀᴛᴇ ʟɪɴᴋs, ᴏʀ ᴅɪsᴄᴏɴɴᴇᴄᴛ ᴀɴʏᴛɪᴍᴇ.\n` +
+      `• 📩 <b>ᴅɪʀᴇᴄᴛ sᴜᴘᴘᴏʀᴛ:</b> ʀᴇᴀᴄʜ ᴏᴜᴛ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ᴅɪʀᴇᴄᴛʟʏ ᴠɪᴀ /contact.\n\n` +
+      `• <b>ᴠᴇʀsɪᴏɴ:</b> <code>2.0.0 (Serverless)</code>\n` +
+      `• <b>ᴘʟᴀᴛғᴏʀᴍ:</b> <code>Telegram Bot API & grammY</code>`;
+
+    const aboutKb = new InlineKeyboard()
+      .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+      .text('📩 ᴄᴏɴᴛᴀᴄᴛ', 'user_chan_contact')
+      .row()
+      .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
+
+    await ctx.editMessageText(aboutText, { parse_mode: 'HTML', reply_markup: aboutKb });
+    return;
+  }
+
   // 2. Add new channel initiation
   if (data === 'user_chan_add') {
     await ctx.answerCallbackQuery();
@@ -215,7 +298,9 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
       `<b>sᴛᴇᴘ 2:</b> ғᴏʀᴡᴀʀᴅ ᴀɴʏ ᴘᴏsᴛ ғʀᴏᴍ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴇʀᴇ, ᴏʀ sᴇɴᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. <code>-1001234567890</code>).\n\n` +
       `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ ᴀᴛ ᴀɴʏ ᴛɪᴍᴇ.</i>`;
 
-    const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'user_chan_list');
+    const cancelKb = new InlineKeyboard()
+      .text('⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list')
+      .text('🔙 ᴍᴀɪɴ ᴍᴇɴᴜ', 'user_chan_menu');
 
     await ctx.editMessageText(promptText, { parse_mode: 'HTML', reply_markup: cancelKb });
     return;

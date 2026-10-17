@@ -61,32 +61,10 @@ export async function handleStart(ctx: Context): Promise<void> {
     }
   }
 
-  // 3. If no payload, send appropriate bot greeting
+  // 3. If no payload, send appropriate bot greeting with instant action buttons
   if (!cleanPayload) {
-    let text: string;
-    const kb = new InlineKeyboard()
-      .text('⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list')
-      .text('📩 ᴄᴏɴᴛᴀᴄᴛ', 'user_chan_contact');
-
-    if (isNewUser) {
-      text =
-        `👋 <b>ᴡᴇʟᴄᴏᴍᴇ, ${escapeHtml(from.first_name)}!</b>\n\n` +
-        `⚡ <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ɢᴀᴛᴇᴡᴀʏ</b>\n` +
-        `ᴛʜɪs ʙᴏᴛ ᴘʀᴏᴠɪᴅᴇs ᴀᴜᴛᴏᴍᴀᴛᴇᴅ, ɪɴsᴛᴀɴᴛ ᴍᴇᴍʙᴇʀsʜɪᴘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ғᴏʀ ᴘʀɪᴠᴀᴛᴇ ᴄᴏᴍᴍᴜɴɪᴛɪᴇs.\n\n` +
-        `• <b>ᴊᴏɪɴɪɴɢ ᴀ ᴄʜᴀɴɴᴇʟ?</b> ᴄʟɪᴄᴋ ᴛʜᴇ ɪɴᴠɪᴛᴀᴛɪᴏɴ ʟɪɴᴋ ᴘʀᴏᴠɪᴅᴇᴅ ʙʏ ʏᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ.\n` +
-        `• <b>ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ?</b> sᴇɴᴅ /managechat ᴛᴏ ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴏʀ ᴄᴏᴘʏ ʟɪɴᴋs.\n` +
-        `• <b>ɴᴇᴇᴅ ᴀssɪsᴛᴀɴᴄᴇ?</b> sᴇɴᴅ /contact ᴛᴏ ʀᴇᴀᴄʜ ᴏᴜᴛ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.`;
-    } else {
-      text =
-        `👋 <b>ᴡᴇʟᴄᴏᴍᴇ ʙᴀᴄᴋ, ${escapeHtml(from.first_name)}!</b>\n\n` +
-        `⚡ <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ɢᴀᴛᴇᴡᴀʏ</b>\n` +
-        `ʏᴏᴜ ᴀʀᴇ ᴀʟʀᴇᴀᴅʏ ʀᴇɢɪsᴛᴇʀᴇᴅ ᴡɪᴛʜ ᴛʜᴇ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ sʏsᴛᴇᴍ.\n\n` +
-        `• <b>ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs:</b> sᴇɴᴅ /managechat ᴛᴏ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴄʜᴀɴɴᴇʟs.\n` +
-        `• <b>ɴᴇᴇᴅ ᴀssɪsᴛᴀɴᴄᴇ:</b> sᴇɴᴅ /contact ᴛᴏ ʀᴇᴀᴄʜ ᴏᴜᴛ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n` +
-        `• <b>ɢᴜɪᴅᴇ & ᴄᴏᴍᴍᴀɴᴅs:</b> sᴇɴᴅ /help ғᴏʀ ɪɴsᴛʀᴜᴄᴛɪᴏɴs.`;
-    }
-
-    await ctx.reply(text, { parse_mode: 'HTML', reply_markup: kb });
+    const { text, keyboard } = renderStartMenu(from.first_name, isNewUser);
+    await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
     return;
   }
 
@@ -135,6 +113,42 @@ export async function handleStart(ctx: Context): Promise<void> {
     parse_mode: 'HTML',
     reply_markup: keyboard,
   });
+}
+
+/**
+ * Renders the primary Start menu with instant submission, Profile, and About buttons
+ */
+export function renderStartMenu(
+  firstName: string,
+  isNewUser: boolean = false
+): { text: string; keyboard: InlineKeyboard } {
+  const greetingHeader = isNewUser
+    ? `👋 <b>ᴡᴇʟᴄᴏᴍᴇ, ${escapeHtml(firstName)}!</b>`
+    : `👋 <b>ᴡᴇʟᴄᴏᴍᴇ ʙᴀᴄᴋ, ${escapeHtml(firstName)}!</b>`;
+
+  const subHeader = isNewUser
+    ? `ᴛʜɪs ʙᴏᴛ ᴘʀᴏᴠɪᴅᴇs ᴀᴜᴛᴏᴍᴀᴛᴇᴅ, ɪɴsᴛᴀɴᴛ ᴍᴇᴍʙᴇʀsʜɪᴘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ғᴏʀ ᴘʀɪᴠᴀᴛᴇ ᴄᴏᴍᴍᴜɴɪᴛɪᴇs.`
+    : `ʏᴏᴜ ᴀʀᴇ ᴀʟʀᴇᴀᴅʏ ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴛᴏ ᴛʜᴇ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ sʏsᴛᴇᴍ.`;
+
+  const text =
+    `${greetingHeader}\n\n` +
+    `⚡ <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ɢᴀᴛᴇᴡᴀʏ</b>\n` +
+    `${subHeader}\n\n` +
+    `• <b>sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ:</b> ᴛᴀᴘ <b>➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ</b> ᴛᴏ ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ɪɴsᴛᴀɴᴛʟʏ.\n` +
+    `• <b>ᴍᴀɴᴀɢᴇ ᴄʜᴀɴɴᴇʟs:</b> ᴛᴀᴘ <b>⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs</b> ᴏʀ sᴇɴᴅ /managechat.\n` +
+    `• <b>ʏᴏᴜʀ ᴀᴄᴄᴏᴜɴᴛ:</b> ᴛᴀᴘ <b>👤 ᴍʏ ᴘʀᴏғɪʟᴇ</b> ᴛᴏ ᴠɪᴇᴡ ʏᴏᴜʀ sᴛᴀᴛs & ɪɴғᴏ.\n` +
+    `• <b>ɴᴇᴇᴅ ᴀssɪsᴛᴀɴᴄᴇ?</b> sᴇɴᴅ /contact ᴏʀ ᴛᴀᴘ <b>📩 ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴ</b>.`;
+
+  const keyboard = new InlineKeyboard()
+    .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+    .text('⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list')
+    .row()
+    .text('👤 ᴍʏ ᴘʀᴏғɪʟᴇ', 'user_chan_profile')
+    .text('ℹ️ ᴀʙᴏᴜᴛ', 'user_chan_about')
+    .row()
+    .text('📩 ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴ', 'user_chan_contact');
+
+  return { text, keyboard };
 }
 
 export async function handleHelp(ctx: Context): Promise<void> {
