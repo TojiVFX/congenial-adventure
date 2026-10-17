@@ -24,6 +24,21 @@ validateConfig();
 
 export const bot = new Bot(config.botToken);
 
+// Ignore "query is too old" errors from answerCallbackQuery.
+// This happens on slow cold starts or when an old button is tapped; it must not break the update.
+bot.api.config.use(async (prev, method, payload, signal) => {
+  const res = await prev(method, payload, signal);
+  if (
+    !res.ok &&
+    method === 'answerCallbackQuery' &&
+    /query is too old|query ID is invalid/i.test(res.description || '')
+  ) {
+    console.warn('[Bot] Ignored expired callback query.');
+    return { ok: true, result: true } as any;
+  }
+  return res;
+});
+
 // Middleware: ensure database connection is established
 bot.use(async (ctx, next) => {
   try {
