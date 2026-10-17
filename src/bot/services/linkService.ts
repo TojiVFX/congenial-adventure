@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 import { Bot, Api } from 'grammy';
 import { Channel, IChannel } from '../../db/models/Channel.js';
+import { InviteLink } from '../../db/models/InviteLink.js';
+
+export const USER_LINK_TTL_MINUTES = 10;
 
 export class LinkService {
   /**
@@ -51,6 +54,48 @@ export class LinkService {
       console.error(`[LinkService] Failed to create invite link for channel ${channelId}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Creates (or reuses) a join-request link made for ONE user that expires
+   * after USER_LINK_TTL_MINUTES. Telegram itself enforces the expiry.
+   */
+  static async getOrCreateUserInviteLink(
+    botOrApi: Bot | Api | { api: Api },
+    channelId: number,
+    userId: number
+  ): Promise<{ link: string; expiresAt: Date }> {
+    const api: Api =
+      'api' in botOrApi && (botOrApi as any).api
+        ? ((botOrApi as any).api as Api)
+        : (botOrApi as Api);
+
+    // Reuse a still-valid link (more than 60s left) so repeated /start taps don't spam links
+    const existing = await InviteLink.findOne({
+      userId,
+      channelId,
+      used: false,
+      expiresAt: { $gt: new Date(Date.now() + 60 * 1000) },
+    }).sort({ expiresAt: -1 });
+    if (existing) {
+      return { link: existing.inviteLink, expiresAt: existing.expiresAt };
+    }
+
+    const expiresAt = new Date(Date.now() + USER_LINK_TTL_MINUTES * 60 * 1000);
+    const inviteLinkObj = await api.createChatInviteLink(channelId, {
+      name: `User_${userId}`.substring(0, 32),
+      creates_join_request: true,
+      expire_date: Math.floor(expiresAt.getTime() / 1000),
+    });
+
+    await InviteLink.create({
+      userId,
+      channelId,
+      inviteLink: inviteLinkObj.invite_link,
+      expiresAt,
+    });
+
+    return { link: inviteLinkObj.invite_link, expiresAt };
   }
 
   /**
