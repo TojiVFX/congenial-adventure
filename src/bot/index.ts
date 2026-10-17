@@ -15,6 +15,7 @@ import {
   handleUserChannelInput,
   handleAdminApprovalCallback,
 } from './handlers/userChannel.js';
+import { handleAcceptAllCommand } from './handlers/acceptAll.js';
 import { updateBotCommands } from './services/commandService.js';
 
 export { updateBotCommands };
@@ -39,6 +40,7 @@ bot.command('help', handleHelp);
 bot.command(['contact', 'request'], handleContactCommand);
 bot.command(['dashboard', 'admin', 'panel'], handleAdminCommand);
 bot.command(['managechat', 'manage', 'mychannels', 'addchannel'], handleManageChatCommand);
+bot.command(['acceptall', 'accepall'], handleAcceptAllCommand);
 
 // Join Requests: Auto-Approval & Logging
 bot.on('chat_join_request', handleChatJoinRequest);
