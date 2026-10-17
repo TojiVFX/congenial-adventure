@@ -31,7 +31,7 @@ bot.use(async (ctx, next) => {
 bot.command('start', handleStart);
 bot.command('help', handleHelp);
 bot.command(['contact', 'request', 'addchannel'], handleContactCommand);
-bot.command(['admin', 'dashboard', 'panel'], handleAdminCommand);
+bot.command(['dashboard', 'admin', 'panel'], handleAdminCommand);
 
 // Join Requests: Auto-Approval & Logging
 bot.on('chat_join_request', handleChatJoinRequest);

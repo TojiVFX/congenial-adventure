@@ -120,12 +120,12 @@ You will see a JSON response confirming:
 ### 2. Set Up a Log Channel (Optional but Recommended)
 1. Create a private Telegram channel (e.g. `My Bot Logs`).
 2. Add your bot as an **Administrator** with **"Send Messages"** permission.
-3. Open your bot in private chat and send `/admin`.
+3. Open your bot in private chat and send `/dashboard`.
 4. Click **📋 Log Channel** -> **Set / Change Log Channel**.
 5. Forward a message from your log channel or enter its channel ID (e.g. `-1001234567890`).
 
 ### 3. Add Channel via Admin Dashboard
-1. In your bot private chat, send `/admin`.
+1. In your bot private chat, send `/dashboard`.
 2. Click **📢 Manage Channels** -> **➕ Add New Channel**.
 3. Forward any post from your channel or send its Channel ID.
 4. The bot will automatically verify its administrator rights, generate your **Bot Deep Link** and **Channel Invite Link**, and enable auto-approval!

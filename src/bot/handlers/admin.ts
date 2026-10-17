@@ -54,7 +54,7 @@ export async function getDashboardText(): Promise<string> {
 export async function handleAdminCommand(ctx: Context): Promise<void> {
   const from = ctx.from;
   if (!from || !(await isAdmin(from.id))) {
-    await ctx.reply('⛔ <b>Access Denied</b>: You are not authorized to use the admin dashboard.', {
+    await ctx.reply('⛔ <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ</b>: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ ᴛᴏ ᴀᴄᴄᴇss ᴛʜɪs ᴄᴏɴᴛʀᴏʟ ᴘᴀɴᴇʟ.', {
       parse_mode: 'HTML',
     });
     return;

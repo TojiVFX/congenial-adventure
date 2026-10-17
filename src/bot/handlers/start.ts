@@ -37,11 +37,11 @@ export async function handleStart(ctx: Context): Promise<void> {
   // 3. If no payload, send standard bot greeting
   if (!payload || !payload.trim()) {
     const text =
-      `👋 <b>Welcome, ${escapeHtml(from.first_name)}!</b>\n\n` +
-      `⚡ <b>Auto-Approval Gateway</b>\n` +
-      `Automated channel request verification and instant access.\n\n` +
-      `• <b>Joining a Channel?</b> Click the invitation link provided by the community owner.\n` +
-      `• <b>Administrator?</b> Send /admin to access your Control Dashboard.`;
+      `👋 <b>ᴡᴇʟᴄᴏᴍᴇ, ${escapeHtml(from.first_name)}!</b>\n\n` +
+      `⚡ <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ɢᴀᴛᴇᴡᴀʏ</b>\n` +
+      `ᴛʜɪs ʙᴏᴛ ᴘʀᴏᴠɪᴅᴇs ᴀᴜᴛᴏᴍᴀᴛᴇᴅ, ɪɴsᴛᴀɴᴛ ᴍᴇᴍʙᴇʀsʜɪᴘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ғᴏʀ ᴘʀɪᴠᴀᴛᴇ ᴄᴏᴍᴍᴜɴɪᴛɪᴇs.\n\n` +
+      `• <b>ᴊᴏɪɴɪɴɢ ᴀ ᴄʜᴀɴɴᴇʟ?</b> ᴄʟɪᴄᴋ ᴛʜᴇ ɪɴᴠɪᴛᴀᴛɪᴏɴ ʟɪɴᴋ ᴘʀᴏᴠɪᴅᴇᴅ ʙʏ ʏᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ.\n` +
+      `• <b>ɴᴇᴇᴅ ᴀssɪsᴛᴀɴᴄᴇ?</b> sᴇɴᴅ /contact ᴛᴏ ʀᴇᴀᴄʜ ᴏᴜᴛ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.`;
 
     await ctx.reply(text, { parse_mode: 'HTML' });
     return;
@@ -91,14 +91,12 @@ export async function handleStart(ctx: Context): Promise<void> {
 export async function handleHelp(ctx: Context): Promise<void> {
   const text =
     `💡 <b>ʜᴏᴡ ᴛᴏ ᴜsᴇ ᴛʜɪs ʙᴏᴛ</b>\n\n` +
-    `• <b>ғᴏʀ ᴄʜᴀɴɴᴇʟ ᴍᴇᴍʙᴇʀs:</b>\n` +
-    `  ᴄʟɪᴄᴋ ᴛʜᴇ ɪɴᴠɪᴛᴇ ᴏʀ ᴅᴇᴇᴘ ʟɪɴᴋ ᴘʀᴏᴠɪᴅᴇᴅ ʙʏ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ᴏᴡɴᴇʀ. sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ ᴀɴᴅ ᴛᴀᴘ <b>ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ</b> ᴛᴏ ɢᴇᴛ ɪɴsᴛᴀɴᴛ ᴀᴄᴄᴇss!\n\n` +
-    `• <b>ᴡᴀɴᴛ ᴛᴏ ᴀᴅᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ?</b>\n` +
-    `  sᴇɴᴅ /contact ᴛᴏ sᴜʙᴍɪᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴅᴇᴛᴀɪʟs ᴅɪʀᴇᴄᴛʟʏ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n\n` +
-    `• <b>ғᴏʀ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs:</b>\n` +
-    `  1. ᴀᴅᴅ ᴛʜɪs ʙᴏᴛ ᴛᴏ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴀs ᴀɴ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ᴡɪᴛʜ <i>ɪɴᴠɪᴛᴇ ᴜsᴇʀs ᴠɪᴀ ʟɪɴᴋ</i> ʀɪɢʜᴛs.\n` +
-    `  2. sᴇɴᴅ /admin ᴛᴏ ᴏᴘᴇɴ ʏᴏᴜʀ ᴄᴏɴᴛʀᴏʟ ᴅᴀsʜʙᴏᴀʀᴅ, ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ, ᴀɴᴅ ɢᴇɴᴇʀᴀᴛᴇ sʜᴏʀᴛ ʟɪɴᴋs.\n` +
-    `  3. sᴇᴛ ᴜᴘ ᴀ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴋᴇᴇᴘ ᴛʀᴀᴄᴋ ᴏғ ᴀʟʟ ᴀᴄᴛɪᴏɴs ɪɴ ʀᴇᴀʟ ᴛɪᴍᴇ.`;
+    `• <b>ᴊᴏɪɴɪɴɢ ᴀ ᴄᴏᴍᴍᴜɴɪᴛʏ:</b>\n` +
+    `  1. ᴄʟɪᴄᴋ ᴛʜᴇ sʜᴏʀᴛ ɪɴᴠɪᴛᴇ ʟɪɴᴋ ғᴏʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ.\n` +
+    `  2. ᴛᴀᴘ <b>ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ</b>.\n` +
+    `  3. ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ᴡɪʟʟ ʙᴇ ᴠᴇʀɪғɪᴇᴅ ᴀɴᴅ ᴀᴘᴘʀᴏᴠᴇᴅ ɪɴsᴛᴀɴᴛʟʏ!\n\n` +
+    `• <b>ᴡᴀɴᴛ ᴛᴏ ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴏᴡɴ ᴄʜᴀɴɴᴇʟ?</b>\n` +
+    `  sᴇɴᴅ /contact ᴛᴏ sᴜʙᴍɪᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴅᴇᴛᴀɪʟs ᴅɪʀᴇᴄᴛʟʏ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.`;
 
   await ctx.reply(text, { parse_mode: 'HTML' });
 }
