@@ -26,8 +26,16 @@ export class AdminKeyboards {
     const kb = new InlineKeyboard();
 
     for (const ch of channels) {
-      const statusIcon = ch.autoApproveEnabled ? '✅' : '⏸️';
-      kb.text(`${statusIcon} ${ch.title}`, `channel_view_${ch.channelId}`).row();
+      let statusIcon = ch.autoApproveEnabled ? '✅' : '⏸️';
+      let suffix = '';
+      if (ch.status === 'pending') {
+        statusIcon = '⏳';
+        suffix = ' (ᴘᴇɴᴅɪɴɢ)';
+      } else if (ch.status === 'rejected') {
+        statusIcon = '❌';
+        suffix = ' (ᴅᴇᴄʟɪɴᴇᴅ)';
+      }
+      kb.text(`${statusIcon} ${ch.title}${suffix}`, `channel_view_${ch.channelId}`).row();
     }
 
     kb.text('➕ ᴀᴅᴅ ɴᴇᴡ ᴄʜᴀɴɴᴇʟ', 'admin_add_channel')

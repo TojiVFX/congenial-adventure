@@ -181,6 +181,11 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
     const me = await ctx.api.getMe();
     const deepLink = LinkService.getBotDeepLink(me.username || '', channel.startPayload);
     const statusText = channel.autoApproveEnabled ? '✅ <b>ᴀᴄᴛɪᴠᴇ (ᴏɴ)</b>' : '⏸️ <b>ᴅɪsᴀʙʟᴇᴅ (ᴏғғ)</b>';
+    const approvalStatusText = channel.status === 'pending'
+      ? '⏳ <b>ᴘᴇɴᴅɪɴɢ ʀᴇᴠɪᴇᴡ</b>'
+      : channel.status === 'rejected'
+      ? '❌ <b>ᴅᴇᴄʟɪɴᴇᴅ</b>'
+      : '✅ <b>ᴀᴘᴘʀᴏᴠᴇᴅ</b>';
     const ownerDisplay = channel.addedByUserName
       ? `<a href="tg://user?id=${channel.addedByUserId}">${escapeHtml(channel.addedByUserName)}</a> (<code>${channel.addedByUserId}</code>)`
       : '<i>ɴᴏᴛ ʀᴇɢɪsᴛᴇʀᴇᴅ</i>';
@@ -190,6 +195,7 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
       `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
       `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username}` : '<i>ᴘʀɪᴠᴀᴛᴇ</i>'}\n` +
       `• <b>ᴀᴅᴅᴇᴅ ʙʏ:</b> ${ownerDisplay}\n` +
+      `• <b>sᴛᴀᴛᴜs:</b> ${approvalStatusText}\n` +
       `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ:</b> ${statusText}\n` +
       `• <b>ᴛᴏᴛᴀʟ ʀᴇǫᴜᴇsᴛs:</b> <code>${channel.totalRequests || 0}</code>\n` +
       `• <b>ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${channel.totalApproved || 0}</code>\n\n` +

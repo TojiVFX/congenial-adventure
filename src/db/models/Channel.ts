@@ -7,6 +7,7 @@ export interface IChannel extends Document {
   inviteLink?: string;
   startPayload: string;
   autoApproveEnabled: boolean;
+  status: 'pending' | 'approved' | 'rejected';
   welcomeMessage?: string;
   welcomeMedia?: string;
   addedByUserId?: number;
@@ -26,6 +27,7 @@ const ChannelSchema: Schema = new Schema(
     inviteLink: { type: String },
     startPayload: { type: String, required: true, unique: true, index: true },
     autoApproveEnabled: { type: Boolean, default: true },
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved', index: true },
     welcomeMessage: { type: String },
     welcomeMedia: { type: String },
     addedByUserId: { type: Number },

@@ -130,6 +130,23 @@ You will see a JSON response confirming:
 3. Forward any post from your channel or send its Channel ID.
 4. The bot will automatically verify its administrator rights, generate your **Bot Deep Link** and **Channel Invite Link**, and enable auto-approval!
 
+### 4. User Self-Service Channel Management (`/managechat`)
+Regular users can connect and manage their own channels with full privacy:
+1. In bot private chat, send `/managechat`.
+2. Click **➕ ᴀᴅᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ**.
+3. Add the bot to their channel as an **Administrator** with **"Invite Users via Link"** permission.
+4. Forward a message from their channel or enter the Channel ID.
+5. The bot submits the request to administrators with **[✅ Accept]** and **[❌ Reject]** buttons.
+6. Once accepted:
+   - The user receives an instant notification with their **Bot Deep-Link** and **Channel Invite Link**.
+   - User can open `/managechat` to:
+     - Toggle auto-approval ON / OFF for their channel.
+     - 1-tap copy links (`📋 ᴄᴏᴘʏ ʙᴏᴛ ʟɪɴᴋ` / `📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ`).
+     - Generate new short links (`🔄 ɴᴇᴡ sʜᴏʀᴛ ʟɪɴᴋ`).
+     - Disconnect their channel (`🗑️ ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ`).
+     - Add multiple channels (`➕ ᴀᴅᴅ ɴᴇᴡ ᴄʜᴀɴɴᴇʟ`).
+7. **Privacy Isolation**: Users only see and manage their own channels.
+
 ---
 
 ## 📖 Deep-Link Format Explained

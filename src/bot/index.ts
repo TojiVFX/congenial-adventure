@@ -9,6 +9,12 @@ import {
   handleAdminCallback,
   handleAdminInput,
 } from './handlers/admin.js';
+import {
+  handleManageChatCommand,
+  handleUserChannelCallback,
+  handleUserChannelInput,
+  handleAdminApprovalCallback,
+} from './handlers/userChannel.js';
 import { updateBotCommands } from './services/commandService.js';
 
 export { updateBotCommands };
@@ -30,19 +36,34 @@ bot.use(async (ctx, next) => {
 // Commands
 bot.command('start', handleStart);
 bot.command('help', handleHelp);
-bot.command(['contact', 'request', 'addchannel'], handleContactCommand);
+bot.command(['contact', 'request'], handleContactCommand);
 bot.command(['dashboard', 'admin', 'panel'], handleAdminCommand);
+bot.command(['managechat', 'manage', 'mychannels', 'addchannel'], handleManageChatCommand);
 
 // Join Requests: Auto-Approval & Logging
 bot.on('chat_join_request', handleChatJoinRequest);
 
-// Callback Queries (Admin Dashboard Navigation & Toggles)
-bot.on('callback_query:data', handleAdminCallback);
+// Callback Queries
+bot.on('callback_query:data', async (ctx, next) => {
+  const data = ctx.callbackQuery.data;
+  if (data.startsWith('user_chan_')) {
+    await handleUserChannelCallback(ctx);
+    return;
+  }
+  if (data.startsWith('admin_approve_chan:') || data.startsWith('admin_reject_chan:')) {
+    await handleAdminApprovalCallback(ctx);
+    return;
+  }
+  await handleAdminCallback(ctx);
+});
 
-// Text & Forward Input Listener (Admin Sessions & Contact Submissions)
+// Text & Forward Input Listener (Admin Sessions, User Channel Inputs & Contact Submissions)
 bot.on('message', async (ctx, next) => {
   const handledAdmin = await handleAdminInput(ctx);
   if (handledAdmin) return;
+
+  const handledUserChannel = await handleUserChannelInput(ctx);
+  if (handledUserChannel) return;
 
   const handledContact = await handleContactMessage(ctx);
   if (handledContact) return;

@@ -15,16 +15,19 @@ export async function handleChatJoinRequest(ctx: Context): Promise<void> {
 
   let channel = await Channel.findOne({ channelId: chat.id });
 
-  // If channel is not yet registered in DB, register it with default settings
-  if (!channel) {
-    channel = await Channel.create({
+  // If channel is not registered or not approved, keep request pending
+  if (!channel || channel.status !== 'approved') {
+    console.log(`[JoinRequest] Channel ${chat.id} is not approved (status: ${channel?.status}). Request kept pending.`);
+    await RequestLog.create({
+      userId: user.id,
+      userName: user.first_name,
+      userUsername: user.username,
       channelId: chat.id,
-      title: chat.title || 'Untitled Channel',
-      username: chat.username,
-      startPayload: LinkService.generateStartPayload(8),
-      autoApproveEnabled: true,
-      welcomeMessage: '✨ Welcome! Your request has been approved.',
+      channelTitle: chat.title || 'Untitled Channel',
+      status: 'pending',
+      reason: channel ? `Channel status is ${channel.status}` : 'Channel not registered or approved by administrator',
     });
+    return;
   }
 
   // Update total request count

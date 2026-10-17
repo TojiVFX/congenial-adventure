@@ -56,14 +56,15 @@ export class LinkService {
   static async resolveChannelFromPayload(payload: string): Promise<IChannel | null> {
     if (!payload || !payload.trim()) return null;
     const cleanPayload = payload.trim();
+    const approvedFilter = { status: { $in: ['approved', undefined] } };
 
     // 1. Direct match by startPayload (e.g. inv_bcibiv)
-    let channel = await Channel.findOne({ startPayload: cleanPayload });
+    let channel = await Channel.findOne({ startPayload: cleanPayload, ...approvedFilter });
     if (channel) return channel;
 
     // 2. Match with 'inv_' prepended if missing
     if (!cleanPayload.startsWith('inv_')) {
-      channel = await Channel.findOne({ startPayload: `inv_${cleanPayload}` });
+      channel = await Channel.findOne({ startPayload: `inv_${cleanPayload}`, ...approvedFilter });
       if (channel) return channel;
     }
 
@@ -72,7 +73,7 @@ export class LinkService {
       const buf = Buffer.from(cleanPayload, 'base64url');
       if (buf.length >= 14) {
         const decodedId = Number(buf.readBigInt64BE(6));
-        channel = await Channel.findOne({ channelId: decodedId });
+        channel = await Channel.findOne({ channelId: decodedId, ...approvedFilter });
         if (channel) return channel;
       }
     } catch {
@@ -82,7 +83,7 @@ export class LinkService {
     // 4. Fallback: direct channel ID
     const numericId = parseInt(cleanPayload, 10);
     if (!isNaN(numericId)) {
-      channel = await Channel.findOne({ channelId: numericId });
+      channel = await Channel.findOne({ channelId: numericId, ...approvedFilter });
       if (channel) return channel;
     }
 
