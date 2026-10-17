@@ -1,4 +1,4 @@
-import { Bot } from 'grammy';
+import { Bot, Api } from 'grammy';
 
 export interface CommandDefinition {
   command: string;
@@ -13,11 +13,19 @@ export const BOT_COMMANDS: CommandDefinition[] = [
 ];
 
 /**
- * Automatically updates and syncs the Telegram command menu button
+ * Automatically updates and syncs the Telegram command menu button.
+ * Accepts either a Bot instance, an Api instance, or a Context's api object.
  */
-export async function updateBotCommands(bot: Bot): Promise<{ success: boolean; count: number; error?: string }> {
+export async function updateBotCommands(
+  botOrApi: Bot | Api | { api: Api }
+): Promise<{ success: boolean; count: number; error?: string }> {
   try {
-    await bot.api.setMyCommands(BOT_COMMANDS);
+    const api: Api =
+      'api' in botOrApi && botOrApi.api
+        ? (botOrApi.api as Api)
+        : (botOrApi as Api);
+
+    await api.setMyCommands(BOT_COMMANDS);
     console.log(`[CommandService] Successfully synced ${BOT_COMMANDS.length} commands with Telegram.`);
     return { success: true, count: BOT_COMMANDS.length };
   } catch (error: any) {

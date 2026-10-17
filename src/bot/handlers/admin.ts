@@ -453,14 +453,20 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
 
   // 15. Auto-Update / Sync Telegram Commands
   if (data === 'admin_sync_commands') {
-    const res = await updateBotCommands(ctx.api as any);
+    const res = await updateBotCommands(ctx.api);
     if (res.success) {
-      await ctx.reply(`✅ <b>Telegram Command Menu Updated!</b>\n\n${res.count} commands have been registered with Telegram and will now appear in the command menu for all users.`, {
-        parse_mode: 'HTML',
-        reply_markup: AdminKeyboards.backToHome(),
-      });
+      await ctx.reply(
+        `✅ <b>ᴛᴇʟᴇɢʀᴀᴍ ᴄᴏᴍᴍᴀɴᴅ ᴍᴇɴᴜ ᴜᴘᴅᴀᴛᴇᴅ!</b>\n\n` +
+        `• <b>${res.count} ᴄᴏᴍᴍᴀɴᴅs</b> ʜᴀᴠᴇ ʙᴇᴇɴ sᴜᴄᴄᴇssғᴜʟʟʏ sʏɴᴄᴇᴅ ᴡɪᴛʜ ᴛᴇʟᴇɢʀᴀᴍ.\n` +
+        `• ᴛʜᴇʏ ᴡɪʟʟ ɴᴏᴡ ᴀᴘᴘᴇᴀʀ ɪɴ ᴛʜᴇ <b>[/]</b> ᴍᴇɴᴜ ʙᴜᴛᴛᴏɴ ғᴏʀ ᴀʟʟ ᴜsᴇʀs.`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: AdminKeyboards.backToHome(),
+        }
+      );
     } else {
-      await ctx.reply(`❌ <b>Failed to update commands:</b> ${res.error}`, {
+      await ctx.reply(`❌ <b>ғᴀɪʟᴇᴅ ᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄᴏᴍᴍᴀɴᴅs:</b> ${res.error}`, {
+        parse_mode: 'HTML',
         reply_markup: AdminKeyboards.backToHome(),
       });
     }
