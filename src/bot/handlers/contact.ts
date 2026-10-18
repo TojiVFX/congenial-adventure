@@ -134,7 +134,9 @@ async function sendContactToAdmins(
     `<blockquote>${escapeHtml(messageContent)}</blockquote>` +
     forwardInfo;
 
-  const replyKb = new InlineKeyboard().url('💬 ᴄᴏɴᴛᴀᴄᴛ ᴜsᴇʀ', `tg://user?id=${from.id}`);
+  const replyKb = new InlineKeyboard()
+    .url('💬 ᴄᴏɴᴛᴀᴄᴛ ᴜsᴇʀ', `tg://user?id=${from.id}`)
+    .primary();
 
   // 1. Deliver to all configured Admins
   const settings = await getGlobalSettings();

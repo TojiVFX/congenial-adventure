@@ -86,7 +86,7 @@ export async function handleStart(ctx: Context): Promise<void> {
       channel.normalLink || (channel.username ? `https://t.me/${channel.username.replace(/^@/, '')}` : undefined);
     const openKb = new InlineKeyboard();
     if (normalLink) {
-      openKb.url('📢 ᴏᴘᴇɴ ᴄʜᴀɴɴᴇʟ', normalLink);
+      openKb.url('📢 ᴏᴘᴇɴ ᴄʜᴀɴɴᴇʟ', normalLink).primary();
     }
     await ctx.reply(
       `✅ <b>Already a Member</b>\n\nYou are already a member of <b>${escapeHtml(channel.title)}</b>.\nFeel free to open the channel anytime.`,
@@ -114,6 +114,7 @@ export async function handleStart(ctx: Context): Promise<void> {
 
   const keyboard = new InlineKeyboard()
     .url('🚀 ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ', userLink)
+    .primary()
     .row();
 
   const greeting = channel.welcomeMessage
@@ -158,6 +159,7 @@ export function renderStartMenu(
 
   const keyboard = new InlineKeyboard()
     .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+    .primary()
     .text('⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list')
     .row()
     .text('👤 ᴍʏ ᴘʀᴏғɪʟᴇ', 'user_chan_profile')

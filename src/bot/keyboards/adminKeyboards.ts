@@ -39,6 +39,7 @@ export class AdminKeyboards {
     }
 
     kb.text('➕ ᴀᴅᴅ ɴᴇᴡ ᴄʜᴀɴɴᴇʟ', 'admin_add_channel')
+      .primary()
       .row()
       .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴅᴀsʜʙᴏᴀʀᴅ', 'admin_home');
 
@@ -53,9 +54,12 @@ export class AdminKeyboards {
       ? '✅ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ: ᴏɴ (ᴄʟɪᴄᴋ ᴛᴏ ᴅɪsᴀʙʟᴇ)'
       : '⏸️ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ: ᴏғғ (ᴄʟɪᴄᴋ ᴛᴏ ᴇɴᴀʙʟᴇ)';
 
-    const kb = new InlineKeyboard()
-      .text(toggleText, `toggle_approve_${channel.channelId}`)
-      .row();
+    const kb = new InlineKeyboard();
+    if (channel.autoApproveEnabled) {
+      kb.text(toggleText, `toggle_approve_${channel.channelId}`).danger().row();
+    } else {
+      kb.text(toggleText, `toggle_approve_${channel.channelId}`).success().row();
+    }
 
     // If deepLink is provided, add premium 1-tap copy button
     if (deepLink) {
@@ -75,6 +79,7 @@ export class AdminKeyboards {
       .row()
       .text('✏️ ᴇᴅɪᴛ ᴡᴇʟᴄᴏᴍᴇ ᴍᴇssᴀɢᴇ', `edit_welcome_${channel.channelId}`)
       .text('🗑️ ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ', `delete_channel_${channel.channelId}`)
+      .danger()
       .row()
       .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴄʜᴀɴɴᴇʟs', 'admin_channels');
 
@@ -121,7 +126,7 @@ export class AdminKeyboards {
   static logChannelMenu(hasChannel: boolean): InlineKeyboard {
     const kb = new InlineKeyboard();
     if (hasChannel) {
-      kb.text('🧪 sᴇɴᴅ ᴛᴇsᴛ ʟᴏɢ', 'test_log_channel').row();
+      kb.text('🧪 sᴇɴᴅ ᴛᴇsᴛ ʟᴏɢ', 'test_log_channel').primary().row();
     }
     kb.text('✏️ sᴇᴛ / ᴄʜᴀɴɢᴇ ʟᴏɢ ᴄʜᴀɴɴᴇʟ', 'set_log_channel')
       .row()

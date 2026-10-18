@@ -41,6 +41,7 @@ export async function handleManageChatCommand(ctx: Context): Promise<void> {
 
     kb = new InlineKeyboard()
       .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+      .primary()
       .row()
       .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
   } else {
@@ -95,6 +96,7 @@ function renderUserChannelList(channels: IChannel[]): { text: string; keyboard: 
   }
 
   kb.text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+    .primary()
     .text('🔄 ʀᴇғʀᴇsʜ', 'user_chan_list')
     .row()
     .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
@@ -133,9 +135,12 @@ function renderUserChannelDetail(
     ? '⏸️ ᴅɪsᴀʙʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ'
     : '✅ ᴇɴᴀʙʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ';
 
-  const kb = new InlineKeyboard()
-    .text(toggleBtnText, `user_chan_toggle:${channel._id}`)
-    .row();
+  const kb = new InlineKeyboard();
+  if (channel.autoApproveEnabled) {
+    kb.text(toggleBtnText, `user_chan_toggle:${channel._id}`).danger().row();
+  } else {
+    kb.text(toggleBtnText, `user_chan_toggle:${channel._id}`).success().row();
+  }
 
   // Premium 1-tap copy buttons
   kb.copyText('📋 ᴄᴏᴘʏ ʙᴏᴛ ʟɪɴᴋ', botDeepLink);
@@ -147,6 +152,7 @@ function renderUserChannelDetail(
 
   kb.text('🔄 ɴᴇᴡ sʜᴏʀᴛ ʟɪɴᴋ', `user_chan_regen:${channel._id}`)
     .text('🗑️ ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ', `user_chan_del_confirm:${channel._id}`)
+    .danger()
     .row()
     .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
 
@@ -227,6 +233,7 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
 
     const profileKb = new InlineKeyboard()
       .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+      .primary()
       .text('⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list')
       .row()
       .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
@@ -254,6 +261,7 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
 
     const aboutKb = new InlineKeyboard()
       .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+      .primary()
       .text('📩 ᴄᴏɴᴛᴀᴄᴛ', 'user_chan_contact')
       .row()
       .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
@@ -382,6 +390,7 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
 
     const confirmKb = new InlineKeyboard()
       .text('🗑️ ʏᴇs, ʀᴇᴍᴏᴠᴇ', `user_chan_del:${channel._id}`)
+      .danger()
       .row()
       .text('🔙 ᴄᴀɴᴄᴇʟ', `user_chan_view:${channel._id}`);
 
@@ -443,9 +452,10 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
 
     const kb = new InlineKeyboard();
     if (normalLink) {
-      kb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalLink).row();
+      kb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalLink).primary().row();
     }
     kb.text('🗑️ ᴄᴀɴᴄᴇʟ ʀᴇǫᴜᴇsᴛ', `user_chan_del_confirm:${chanDbId}`)
+      .danger()
       .row()
       .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
 
@@ -467,6 +477,7 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
 
     const kb = new InlineKeyboard()
       .text('🗑️ ʀᴇᴍᴏᴠᴇ ᴇɴᴛʀʏ', `user_chan_del:${chanDbId}`)
+      .danger()
       .row()
       .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
 
@@ -507,7 +518,7 @@ export async function handleUserChannelInput(ctx: Context): Promise<boolean> {
         `ʏᴏᴜ ʜᴀᴠᴇ ɴᴏᴛ ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴀɴʏ ᴄʜᴀɴɴᴇʟs ʏᴇᴛ.\n\n` +
         `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ ᴍᴇᴍʙᴇʀs:</b> ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ ᴀᴄᴄᴇᴘᴛ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs.\n` +
         `• <b>sʜᴀʀᴇᴀʙʟᴇ ᴅᴇᴇᴘ-ʟɪɴᴋs:</b> ɢᴇᴛ ᴘʀᴇᴍɪᴜᴍ sʜᴏʀᴛ ʟɪɴᴋs ғᴏʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ.`;
-      const kb = new InlineKeyboard().text('➕ ᴀᴅᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ', 'user_chan_add').row();
+      const kb = new InlineKeyboard().text('➕ ᴀᴅᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ', 'user_chan_add').primary().row();
       await editOrReply(ctx, chatId, promptMessageId, cancelText, { parse_mode: 'HTML', reply_markup: kb });
       return true;
     }
@@ -595,7 +606,7 @@ export async function handleUserChannelInput(ctx: Context): Promise<boolean> {
 
   const viewKb = new InlineKeyboard();
   if (normalChannelLink) {
-    viewKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).row();
+    viewKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).primary().row();
   }
   viewKb.text('⚙️ ᴠɪᴇᴡ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
   await editOrReply(ctx, chatId, promptMessageId, successText, { parse_mode: 'HTML', reply_markup: viewKb });
@@ -662,11 +673,13 @@ async function sendChannelApprovalRequestToAdmins(
 
   const approvalKb = new InlineKeyboard();
   if (normalChannelLink) {
-    approvalKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).row();
+    approvalKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).primary().row();
   }
   approvalKb
     .text('✅ ᴀᴄᴄᴇᴘᴛ', `admin_approve_chan:${channel._id}`)
-    .text('❌ ʀᴇᴊᴇᴄᴛ', `admin_reject_chan:${channel._id}`);
+    .success()
+    .text('❌ ʀᴇᴊᴇᴄᴛ', `admin_reject_chan:${channel._id}`)
+    .danger();
 
   const settings = await getGlobalSettings();
   const allAdmins = Array.from(new Set([...config.adminIds, ...(settings.admins || [])]));
@@ -765,7 +778,7 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
 
     const updatedAdminKb = new InlineKeyboard();
     if (normalChannelLink) {
-      updatedAdminKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink);
+      updatedAdminKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).primary();
     }
 
     try {
@@ -797,7 +810,7 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
         ownerKb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', channelLinkToCopy).row();
       }
 
-      ownerKb.text('⚙️ ᴍᴀɴᴀɢᴇ ᴄʜᴀɴɴᴇʟ', `user_chan_view:${channel._id}`);
+      ownerKb.text('⚙️ ᴍᴀɴᴀɢᴇ ᴄʜᴀɴɴᴇʟ', `user_chan_view:${channel._id}`).primary();
 
       try {
         await ctx.api.sendMessage(channel.addedByUserId, ownerText, {
@@ -834,7 +847,7 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
 
     const updatedAdminKb = new InlineKeyboard();
     if (normalChannelLink) {
-      updatedAdminKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink);
+      updatedAdminKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).primary();
     }
 
     try {
