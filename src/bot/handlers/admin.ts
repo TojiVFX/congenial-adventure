@@ -5,6 +5,7 @@ import { User } from '../../db/models/User.js';
 import { RequestLog } from '../../db/models/RequestLog.js';
 import {
   getGlobalSettings,
+  invalidateSettingsCache,
   getAdminSession,
   setAdminSession,
   clearAdminSession,
@@ -702,6 +703,7 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
       const settings = await getGlobalSettings();
       settings.logChannelId = logId;
       await settings.save();
+      invalidateSettingsCache();
       await clearAdminSession(from.id);
 
       const successText = `✅ <b>Log Channel successfully configured!</b>\nID: <code>${logId}</code>`;

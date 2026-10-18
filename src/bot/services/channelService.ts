@@ -9,7 +9,44 @@ export interface ChannelValidationResult {
   username?: string;
 }
 
+interface ChannelCacheEntry {
+  channel: IChannel | null;
+  expiresAt: number;
+}
+
+const channelCache = new Map<number, ChannelCacheEntry>();
+const CHANNEL_CACHE_TTL_MS = 60 * 1000;
+
 export class ChannelService {
+  /**
+   * Invalidates in-memory channel cache
+   */
+  static invalidateChannelCache(channelId?: number): void {
+    if (channelId) {
+      channelCache.delete(channelId);
+    } else {
+      channelCache.clear();
+    }
+  }
+
+  /**
+   * Retrieves channel configuration with a 60s in-memory warm cache
+   */
+  static async getChannelCached(channelId: number): Promise<IChannel | null> {
+    const now = Date.now();
+    const entry = channelCache.get(channelId);
+    if (entry && entry.expiresAt > now) {
+      return entry.channel;
+    }
+
+    const channel = await Channel.findOne({ channelId });
+    channelCache.set(channelId, {
+      channel,
+      expiresAt: now + CHANNEL_CACHE_TTL_MS,
+    });
+    return channel;
+  }
+
   /**
    * Helper to extract Api instance
    */
@@ -130,6 +167,7 @@ export class ChannelService {
         await channel.save();
       }
 
+      this.invalidateChannelCache(channelId);
       return { success: true, channel };
     } catch (err: any) {
       console.error(`[ChannelService] Error adding channel ${channelId}:`, err);
@@ -189,6 +227,7 @@ export class ChannelService {
         channel.addedByUserName = user.name;
         channel.addedByUserUsername = user.username;
         await channel.save();
+        this.invalidateChannelCache(channelId);
         return { success: true, channel };
       }
 
@@ -223,6 +262,7 @@ export class ChannelService {
         addedByUserUsername: user.username,
       });
 
+      this.invalidateChannelCache(channelId);
       return { success: true, channel };
     } catch (err: any) {
       console.error(`[ChannelService] Error submitting channel ${channelId}:`, err);

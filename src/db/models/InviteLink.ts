@@ -23,5 +23,9 @@ const InviteLinkSchema: Schema = new Schema(
 // Auto-clean old records from MongoDB 1 hour after expiry
 InviteLinkSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 3600 });
 
+// Compound indexes for user link validation and bulk updates
+InviteLinkSchema.index({ userId: 1, channelId: 1, used: 1, expiresAt: 1 });
+InviteLinkSchema.index({ channelId: 1, used: 1 });
+
 export const InviteLink =
   mongoose.models.InviteLink || mongoose.model<IInviteLink>('InviteLink', InviteLinkSchema);

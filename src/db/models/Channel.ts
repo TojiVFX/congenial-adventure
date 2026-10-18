@@ -41,4 +41,8 @@ const ChannelSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+// Optimized indexes for user channel listing and deep-link payload lookup
+ChannelSchema.index({ addedByUserId: 1 });
+ChannelSchema.index({ startPayload: 1, status: 1 });
+
 export const Channel = mongoose.models.Channel || mongoose.model<IChannel>('Channel', ChannelSchema);

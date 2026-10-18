@@ -20,6 +20,7 @@ export const PUBLIC_COMMANDS: CommandDefinition[] = [
 export const ADMIN_COMMANDS: CommandDefinition[] = [
   { command: 'start', description: 'sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ' },
   { command: 'dashboard', description: 'ᴀᴅᴍɪɴ ᴄᴏɴᴛʀᴏʟ ᴅᴀsʜʙᴏᴀʀᴅ' },
+  { command: 'status', description: 'sʏsᴛᴇᴍ sᴛᴀᴛᴜs & ᴇʀʀᴏʀ ʟᴏɢs' },
   { command: 'managechat', description: 'ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs & ʟɪɴᴋs' },
   { command: 'acceptall', description: 'ᴀᴄᴄᴇᴘᴛ ᴀʟʟ ᴘᴇɴᴅɪɴɢ ʀᴇǫᴜᴇsᴛs' },
   { command: 'help', description: 'ɢᴜɪᴅᴇ & ɪɴsᴛʀᴜᴄᴛɪᴏɴs' },

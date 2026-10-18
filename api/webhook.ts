@@ -4,9 +4,11 @@ import { bot } from '../src/bot/index.js';
 import { config } from '../src/config.js';
 import { connectDB } from '../src/db/connection.js';
 
+const timeoutMs = parseInt(process.env.WEBHOOK_TIMEOUT_MS || '9500', 10);
+
 const handler = webhookCallback(bot, 'http', {
   secretToken: config.webhookSecret || undefined,
-  timeoutMilliseconds: 25000,
+  timeoutMilliseconds: timeoutMs,
 });
 
 export default async function (req: IncomingMessage, res: ServerResponse) {

@@ -1,4 +1,5 @@
 import { Bot } from 'grammy';
+import { autoRetry } from '@grammyjs/auto-retry';
 import { config, validateConfig } from '../config.js';
 import { connectDB } from '../db/connection.js';
 import { handleStart, handleHelp } from './handlers/start.js';
@@ -15,8 +16,16 @@ import {
   handleUserChannelInput,
   handleAdminApprovalCallback,
 } from './handlers/userChannel.js';
-import { handleAcceptAllCommand } from './handlers/acceptAll.js';
+import { handleAcceptAllCommand, handleAcceptAllCallback } from './handlers/acceptAll.js';
+import {
+  handleStatusCommand,
+  handleStatusCallback,
+  handleClearErrorsCallback,
+} from './handlers/status.js';
 import { updateBotCommands } from './services/commandService.js';
+import { LoggerService } from './services/loggerService.js';
+import { classifyError } from './utils/errors.js';
+import { recordSystemError } from '../db/models/SystemError.js';
 
 export { updateBotCommands };
 
@@ -24,8 +33,15 @@ validateConfig();
 
 export const bot = new Bot(config.botToken);
 
-// Ignore "query is too old" errors from answerCallbackQuery.
-// This happens on slow cold starts or when an old button is tapped; it must not break the update.
+// 1. Auto-Retry Telegram Rate Limits (429) with 5s ceiling for serverless safety
+bot.api.config.use(
+  autoRetry({
+    maxDelaySeconds: 5,
+    maxRetryAttempts: 2,
+  })
+);
+
+// 2. Ignore "query is too old" errors from answerCallbackQuery
 bot.api.config.use(async (prev, method, payload, signal) => {
   const res = await prev(method, payload, signal);
   if (
@@ -54,6 +70,7 @@ bot.command('start', handleStart);
 bot.command('help', handleHelp);
 bot.command(['contact', 'request'], handleContactCommand);
 bot.command(['dashboard', 'admin', 'panel'], handleAdminCommand);
+bot.command(['status', 'systemstatus', 'health'], handleStatusCommand);
 bot.command(['managechat', 'manage', 'mychannels', 'addchannel'], handleManageChatCommand);
 bot.command(['acceptall', 'accepall'], handleAcceptAllCommand);
 
@@ -69,6 +86,18 @@ bot.on('callback_query:data', async (ctx, next) => {
   }
   if (data.startsWith('admin_approve_chan:') || data.startsWith('admin_reject_chan:')) {
     await handleAdminApprovalCallback(ctx);
+    return;
+  }
+  if (data.startsWith('acceptall_continue:')) {
+    await handleAcceptAllCallback(ctx);
+    return;
+  }
+  if (data === 'admin_status' || data === 'admin_status_refresh') {
+    await handleStatusCallback(ctx);
+    return;
+  }
+  if (data === 'admin_clear_errors') {
+    await handleClearErrorsCallback(ctx);
     return;
   }
   await handleAdminCallback(ctx);
@@ -88,7 +117,36 @@ bot.on('message', async (ctx, next) => {
   await next();
 });
 
-// Catch-all error handler
-bot.catch(err => {
-  console.error('[Bot Error]:', err);
+// Granular Catch-all error handler
+bot.catch(async err => {
+  const { ctx, error } = err;
+  const classified = classifyError(error);
+
+  if (classified.isBenign) {
+    console.warn(`[Bot Warning] Suppressed benign error: ${classified.message}`);
+  } else {
+    console.error(`[Bot Error] Category: ${classified.category} | Code: ${classified.code || 'N/A'}:`, classified.message);
+
+    // Record error in MongoDB for /status diagnostics
+    recordSystemError(
+      error,
+      `Update #${ctx?.update?.update_id || 'unknown'} (${ctx?.from?.id ? `User ${ctx.from.id}` : 'system'})`
+    ).catch(() => {});
+
+    if (classified.isCritical && ctx.api) {
+      LoggerService.logCriticalError(
+        ctx,
+        `System Alert: ${classified.category.toUpperCase()}`,
+        classified.message
+      ).catch(() => {});
+    }
+  }
+
+  // Release any stuck loading wheel if an unhandled error occurred in a callback query
+  if (ctx?.callbackQuery) {
+    ctx.answerCallbackQuery({
+      text: classified.isCritical ? '⚠️ Operation failed. Admin notified.' : '⚠️ Action failed. Please try again.',
+      show_alert: classified.isCritical,
+    }).catch(() => {});
+  }
 });

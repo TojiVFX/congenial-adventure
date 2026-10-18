@@ -134,4 +134,23 @@ export class LoggerService {
 
     await this.sendLog(botOrApi, text);
   }
+
+  /**
+   * Log: Critical error alert sent to log channel
+   */
+  static async logCriticalError(
+    botOrApi: BotOrApi,
+    title: string,
+    details: string
+  ): Promise<void> {
+    const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    const text =
+      `🚨 <b>ᴄʀɪᴛɪᴄᴀʟ sʏsᴛᴇᴍ ᴀʟᴇʀᴛ</b>\n\n` +
+      `• <b>ᴇᴠᴇɴᴛ:</b> ${escapeHtml(title)}\n` +
+      `• <b>ᴅᴇᴛᴀɪʟs:</b> <code>${escapeHtml(details.substring(0, 300))}</code>\n` +
+      `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
+
+    await this.sendLog(botOrApi, text);
+  }
 }

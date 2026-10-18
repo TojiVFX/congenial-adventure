@@ -8,15 +8,16 @@ export class AdminKeyboards {
   static mainMenu(): InlineKeyboard {
     return new InlineKeyboard()
       .text('📊 ᴀɴᴀʟʏᴛɪᴄs & sᴛᴀᴛs', 'admin_stats')
+      .text('🖥️ sʏsᴛᴇᴍ sᴛᴀᴛᴜs', 'admin_status')
+      .row()
       .text('📢 ᴍᴀɴᴀɢᴇ ᴄʜᴀɴɴᴇʟs', 'admin_channels')
-      .row()
       .text('🔗 ʟɪɴᴋ ᴄᴇɴᴛᴇʀ', 'admin_gen_link')
+      .row()
       .text('📋 ʟᴏɢ ᴄʜᴀɴɴᴇʟ', 'admin_log_settings')
-      .row()
       .text('📣 ʙʀᴏᴀᴅᴄᴀsᴛ ᴍᴇssᴀɢᴇ', 'admin_broadcast')
-      .text('⚡ sʏɴᴄ ᴄᴏᴍᴍᴀɴᴅs', 'admin_sync_commands')
       .row()
-      .text('🔄 ʀᴇғʀᴇsʜ ᴅᴀsʜʙᴏᴀʀᴅ', 'admin_refresh');
+      .text('⚡ sʏɴᴄ ᴄᴏᴍᴍᴀɴᴅs', 'admin_sync_commands')
+      .text('🔄 ʀᴇғʀᴇsʜ', 'admin_refresh');
   }
 
   /**

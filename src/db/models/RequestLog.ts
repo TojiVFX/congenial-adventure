@@ -24,4 +24,9 @@ const RequestLogSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+// High-performance compound indexes for filtering by channel and status
+RequestLogSchema.index({ channelId: 1, status: 1 });
+RequestLogSchema.index({ channelId: 1, userId: 1, status: 1 });
+RequestLogSchema.index({ status: 1 });
+
 export const RequestLog = mongoose.models.RequestLog || mongoose.model<IRequestLog>('RequestLog', RequestLogSchema);
