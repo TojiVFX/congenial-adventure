@@ -169,11 +169,14 @@ export async function handleChatJoinRequest(ctx: Context): Promise<void> {
     recordSystemError(error, `JoinRequest: user ${user.id} in channel ${chat.id}`).catch(() => {});
 
     if (/not enough rights|CHAT_ADMIN_REQUIRED|rights to invite|administrator/i.test(errorMsg)) {
-      LoggerService.logChannelAction(
+      LoggerService.logCriticalError(
         ctx,
-        `⚠️ <b>PERMISSION ERROR</b>: Bot lacks rights to approve join requests in channel! Please ensure "Invite Users via Link" is enabled.`,
-        { id: chat.id, title: chat.title || 'Untitled Channel' },
-        user.id
+        'Permission Error: Bot Lacks Channel Rights',
+        `Bot is missing "Invite Users via Link" permission to approve join requests.\nError: ${errorMsg}`,
+        {
+          channel: { id: chat.id, title: chat.title || 'Untitled Channel' },
+          user: { id: user.id, name: user.first_name },
+        }
       ).catch(() => {});
     }
 

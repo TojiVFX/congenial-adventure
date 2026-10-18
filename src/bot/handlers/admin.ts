@@ -106,7 +106,7 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
         RequestLog.countDocuments(),
         RequestLog.countDocuments({ status: 'approved' }),
         RequestLog.countDocuments({ status: 'pending' }),
-        RequestLog.find().sort({ createdAt: -1 }).limit(5),
+        RequestLog.find().sort({ createdAt: -1 }).limit(10),
       ]);
 
     const approvalRate =
@@ -119,14 +119,15 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
       `• <b>ᴛᴏᴛᴀʟ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs:</b> <code>${totalRequests}</code>\n` +
       `• <b>✅ ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${totalApproved}</code> (${approvalRate}%)\n` +
       `• <b>⏸️ ᴘᴇɴᴅɪɴɢ:</b> <code>${totalPending}</code>\n\n` +
-      `🕒 <b>ʀᴇᴄᴇɴᴛ ᴀᴄᴛɪᴏɴs:</b>\n`;
+      `🕒 <b>ʟᴀsᴛ 10 ʀᴇᴄᴇɴᴛ ᴀᴄᴛɪᴏɴs:</b>\n`;
 
     if (recentLogs.length === 0) {
       statsText += `<i>ɴᴏ ʀᴇǫᴜᴇsᴛs ʀᴇᴄᴏʀᴅᴇᴅ ʏᴇᴛ.</i>\n`;
     } else {
       for (const log of recentLogs) {
-        const icon = log.status === 'approved' ? '🟢' : '🟡';
-        statsText += `${icon} <b>${escapeHtml(log.userName)}</b> in <i>${escapeHtml(log.channelTitle)}</i> [${log.status}]\n`;
+        const icon = log.status === 'approved' ? '🟢' : log.status === 'rejected' ? '❌' : '🟡';
+        const time = new Date(log.createdAt).toISOString().substring(11, 16);
+        statsText += `${icon} <code>${time}</code> <a href="tg://user?id=${log.userId}">${escapeHtml(log.userName)}</a> → <i>${escapeHtml(log.channelTitle)}</i> [${log.status}]\n`;
       }
     }
 

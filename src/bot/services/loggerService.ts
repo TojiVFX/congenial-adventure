@@ -54,17 +54,17 @@ export class LoggerService {
     user: { id: number; firstName: string; username?: string },
     payload?: string
   ): Promise<void> {
-    const usernameDisplay = user.username ? `@${user.username}` : '<i>ɴᴏɴᴇ</i>';
-    const payloadDisplay = payload ? `<code>${payload}</code>` : '<i>ᴅɪʀᴇᴄᴛ / ɴᴏɴᴇ</i>';
+    const usernameDisplay = user.username ? `@${user.username}` : '<i>None</i>';
+    const payloadDisplay = payload ? `<code>${escapeHtml(payload)}</code>` : '<i>Direct / None</i>';
     const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     const text =
-      `👤 <b>ɴᴇᴡ ᴜsᴇʀ sᴛᴀʀᴛᴇᴅ ʙᴏᴛ</b>\n\n` +
-      `• <b>ɴᴀᴍᴇ:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a>\n` +
-      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${usernameDisplay}\n` +
-      `• <b>ᴜsᴇʀ ɪᴅ:</b> <code>${user.id}</code>\n` +
-      `• <b>sᴛᴀʀᴛ ᴘᴀʏʟᴏᴀᴅ:</b> ${payloadDisplay}\n` +
-      `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
+      `👤 <b>NEW USER ONBOARDED</b>  #NEW_USER\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `👤 <b>User:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a> (${usernameDisplay})\n` +
+      `🆔 <b>User ID:</b> <code>${user.id}</code>\n` +
+      `🔗 <b>Start Payload:</b> ${payloadDisplay}\n` +
+      `🕒 <b>Timestamp:</b> <code>${time} UTC</code>`;
 
     await this.sendLog(botOrApi, text);
   }
@@ -75,19 +75,23 @@ export class LoggerService {
   static async logRequestApproved(
     botOrApi: BotOrApi,
     user: { id: number; firstName: string; username?: string },
-    channel: { id: number; title: string }
+    channel: { id: number; title: string; username?: string }
   ): Promise<void> {
-    const usernameDisplay = user.username ? `@${user.username}` : '<i>ɴᴏɴᴇ</i>';
+    const usernameDisplay = user.username ? `@${user.username}` : '<i>None</i>';
     const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
+    const channelDisplay = channel.username
+      ? `<a href="https://t.me/${channel.username.replace(/^@/, '')}">${escapeHtml(channel.title)}</a>`
+      : `<b>${escapeHtml(channel.title)}</b>`;
+
     const text =
-      `🟢 <b>ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛ ᴀᴘᴘʀᴏᴠᴇᴅ</b>\n\n` +
-      `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b> (<code>${channel.id}</code>)\n` +
-      `• <b>ᴜsᴇʀ:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a>\n` +
-      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${usernameDisplay}\n` +
-      `• <b>ᴜsᴇʀ ɪᴅ:</b> <code>${user.id}</code>\n` +
-      `• <b>sᴛᴀᴛᴜs:</b> ✅ <b>ᴀᴘᴘʀᴏᴠᴇᴅ ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ</b>\n` +
-      `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
+      `🟢 <b>JOIN REQUEST APPROVED</b>  #JOIN_APPROVED\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📢 <b>Channel:</b> ${channelDisplay} (<code>${channel.id}</code>)\n` +
+      `👤 <b>User:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a> (${usernameDisplay})\n` +
+      `🆔 <b>User ID:</b> <code>${user.id}</code>\n` +
+      `⚡ <b>Status:</b> ✅ <b>Instant Auto-Approval</b>\n` +
+      `🕒 <b>Timestamp:</b> <code>${time} UTC</code>`;
 
     await this.sendLog(botOrApi, text);
   }
@@ -98,58 +102,79 @@ export class LoggerService {
   static async logRequestPending(
     botOrApi: BotOrApi,
     user: { id: number; firstName: string; username?: string },
-    channel: { id: number; title: string }
+    channel: { id: number; title: string; username?: string }
   ): Promise<void> {
-    const usernameDisplay = user.username ? `@${user.username}` : '<i>ɴᴏɴᴇ</i>';
+    const usernameDisplay = user.username ? `@${user.username}` : '<i>None</i>';
     const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
+    const channelDisplay = channel.username
+      ? `<a href="https://t.me/${channel.username.replace(/^@/, '')}">${escapeHtml(channel.title)}</a>`
+      : `<b>${escapeHtml(channel.title)}</b>`;
+
     const text =
-      `🟡 <b>ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛ ᴘᴇɴᴅɪɴɢ (ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ ᴅɪsᴀʙʟᴇᴅ)</b>\n\n` +
-      `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b> (<code>${channel.id}</code>)\n` +
-      `• <b>ᴜsᴇʀ:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a>\n` +
-      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${usernameDisplay}\n` +
-      `• <b>ᴜsᴇʀ ɪᴅ:</b> <code>${user.id}</code>\n` +
-      `• <b>sᴛᴀᴛᴜs:</b> ⏳ <b>ʟᴇғᴛ ᴘᴇɴᴅɪɴɢ</b>\n` +
-      `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
+      `🟡 <b>JOIN REQUEST PENDING</b>  #JOIN_PENDING\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📢 <b>Channel:</b> ${channelDisplay} (<code>${channel.id}</code>)\n` +
+      `👤 <b>User:</b> <a href="tg://user?id=${user.id}">${escapeHtml(user.firstName)}</a> (${usernameDisplay})\n` +
+      `🆔 <b>User ID:</b> <code>${user.id}</code>\n` +
+      `⏸️ <b>Status:</b> ⏳ <b>Auto-Approve Disabled (Pending Review)</b>\n` +
+      `🕒 <b>Timestamp:</b> <code>${time} UTC</code>`;
 
     await this.sendLog(botOrApi, text);
   }
 
   /**
-   * Log: Channel added or updated
+   * Log: Channel added, approved, or updated
    */
   static async logChannelAction(
     botOrApi: BotOrApi,
     action: string,
-    channel: { id: number; title: string },
+    channel: { id: number; title: string; username?: string },
     adminId: number
   ): Promise<void> {
     const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
+    const channelDisplay = channel.username
+      ? `<a href="https://t.me/${channel.username.replace(/^@/, '')}">${escapeHtml(channel.title)}</a>`
+      : `<b>${escapeHtml(channel.title)}</b>`;
+
     const text =
-      `📢 <b>ᴄʜᴀɴɴᴇʟ ᴀᴄᴛɪᴏɴ: ${escapeHtml(action)}</b>\n\n` +
-      `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${escapeHtml(channel.title)}</b> (<code>${channel.id}</code>)\n` +
-      `• <b>ᴘᴇʀғᴏʀᴍᴇᴅ ʙʏ ᴀᴅᴍɪɴ:</b> <code>${adminId}</code>\n` +
-      `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
+      `⚙️ <b>CHANNEL MANAGEMENT</b>  #CHANNEL_ACTION\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📢 <b>Channel:</b> ${channelDisplay} (<code>${channel.id}</code>)\n` +
+      `⚡ <b>Action:</b> <b>${escapeHtml(action)}</b>\n` +
+      `👮 <b>Performed By:</b> <a href="tg://user?id=${adminId}">Admin</a> (<code>${adminId}</code>)\n` +
+      `🕒 <b>Timestamp:</b> <code>${time} UTC</code>`;
 
     await this.sendLog(botOrApi, text);
   }
 
   /**
-   * Log: Critical error alert sent to log channel
+   * Log: Critical error alert sent to log channel with collapsible quote
    */
   static async logCriticalError(
     botOrApi: BotOrApi,
     title: string,
-    details: string
+    details: string,
+    extraInfo?: { channel?: { id: number; title: string }; user?: { id: number; name?: string } }
   ): Promise<void> {
     const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
+    let extraText = '';
+    if (extraInfo?.channel) {
+      extraText = `📢 <b>Channel:</b> <b>${escapeHtml(extraInfo.channel.title)}</b> (<code>${extraInfo.channel.id}</code>)\n`;
+    }
+    if (extraInfo?.user) {
+      extraText += `👤 <b>User:</b> <a href="tg://user?id=${extraInfo.user.id}">${escapeHtml(extraInfo.user.name || 'User')}</a> (<code>${extraInfo.user.id}</code>)\n`;
+    }
+
     const text =
-      `🚨 <b>ᴄʀɪᴛɪᴄᴀʟ sʏsᴛᴇᴍ ᴀʟᴇʀᴛ</b>\n\n` +
-      `• <b>ᴇᴠᴇɴᴛ:</b> ${escapeHtml(title)}\n` +
-      `• <b>ᴅᴇᴛᴀɪʟs:</b> <code>${escapeHtml(details.substring(0, 300))}</code>\n` +
-      `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
+      `🚨 <b>CRITICAL SYSTEM ALERT</b>  #CRITICAL_ALERT\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `⚠️ <b>Event:</b> <b>${escapeHtml(title)}</b>\n` +
+      extraText +
+      `\n<blockquote expandable><b>Error Details:</b>\n${escapeHtml(details.substring(0, 800))}</blockquote>\n` +
+      `🕒 <b>Timestamp:</b> <code>${time} UTC</code>`;
 
     await this.sendLog(botOrApi, text);
   }

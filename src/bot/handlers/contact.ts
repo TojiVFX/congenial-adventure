@@ -121,18 +121,18 @@ async function sendContactToAdmins(
 
   let forwardInfo = '';
   if (forwardedChannel) {
-    forwardInfo = `\n\n📢 <b>ғᴏʀᴡᴀʀᴅᴇᴅ ᴄʜᴀɴɴᴇʟ:</b> ${escapeHtml(forwardedChannel.title)} (<code>${forwardedChannel.id}</code>)`;
+    forwardInfo = `📢 <b>Forwarded Channel:</b> ${escapeHtml(forwardedChannel.title)} (<code>${forwardedChannel.id}</code>)\n`;
   }
 
   const adminText =
-    `📬 <b>ɴᴇᴡ ᴄʜᴀɴɴᴇʟ / sᴜᴘᴘᴏʀᴛ ʀᴇǫᴜᴇsᴛ</b>\n\n` +
-    `• <b>ғʀᴏᴍ:</b> <a href="tg://user?id=${from.id}">${escapeHtml(from.first_name)}</a>\n` +
-    `• <b>ᴜsᴇʀ ɪᴅ:</b> <code>${from.id}</code>\n` +
-    `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${usernameDisplay}\n` +
-    `• <b>ᴛɪᴍᴇ:</b> <code>${time} UTC</code>\n\n` +
-    `💬 <b>ᴍᴇssᴀɢᴇ:</b>\n` +
-    `<blockquote>${escapeHtml(messageContent)}</blockquote>` +
-    forwardInfo;
+    `📬 <b>NEW SUPPORT / CHANNEL REQUEST</b>  #CONTACT_REQUEST\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `👤 <b>From:</b> <a href="tg://user?id=${from.id}">${escapeHtml(from.first_name)}</a> (${usernameDisplay})\n` +
+    `🆔 <b>User ID:</b> <code>${from.id}</code>\n` +
+    (forwardInfo ? `${forwardInfo}` : '') +
+    `🕒 <b>Time:</b> <code>${time} UTC</code>\n\n` +
+    `💬 <b>Message Content:</b>\n` +
+    `<blockquote expandable>${escapeHtml(messageContent)}</blockquote>`;
 
   const replyKb = new InlineKeyboard()
     .url('💬 ᴄᴏɴᴛᴀᴄᴛ ᴜsᴇʀ', `tg://user?id=${from.id}`)
