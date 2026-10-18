@@ -71,11 +71,11 @@ export class ChannelService {
    * Adds or registers a channel in the database and generates its links (admin direct add)
    */
   static async addChannel(
-    bot: Bot,
+    botOrApi: Bot | Api | { api: Api },
     channelId: number,
     addedBy?: { id: number; name: string; username?: string }
   ): Promise<{ success: boolean; channel?: IChannel; error?: string }> {
-    const validation = await this.validateBotPermissions(bot, channelId);
+    const validation = await this.validateBotPermissions(botOrApi, channelId);
     if (!validation.valid || !validation.title) {
       return { success: false, error: validation.error };
     }
@@ -85,11 +85,11 @@ export class ChannelService {
 
       // Generate short clean start payload, Telegram join-request link, and normal preview link
       const startPayload = LinkService.generateStartPayload(8);
-      const inviteLink = await LinkService.getOrCreateChannelInviteLink(bot, channelId, validation.title);
+      const inviteLink = await LinkService.getOrCreateChannelInviteLink(botOrApi, channelId, validation.title);
       let normalLink: string | undefined;
       try {
         normalLink = await LinkService.getOrCreateNormalChannelLink(
-          bot,
+          botOrApi,
           channelId,
           validation.title,
           validation.username

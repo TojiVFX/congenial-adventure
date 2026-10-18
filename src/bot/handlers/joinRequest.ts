@@ -3,6 +3,7 @@ import { Channel } from '../../db/models/Channel.js';
 import { RequestLog } from '../../db/models/RequestLog.js';
 import { InviteLink } from '../../db/models/InviteLink.js';
 import { LoggerService } from '../services/loggerService.js';
+import { escapeHtml } from '../utils/html.js';
 
 export async function handleChatJoinRequest(ctx: Context): Promise<void> {
   const joinRequest = ctx.chatJoinRequest;
@@ -74,7 +75,7 @@ export async function handleChatJoinRequest(ctx: Context): Promise<void> {
 
     // Log to audit log channel
     ctx.api && LoggerService.logRequestPending(
-      ctx as any,
+      ctx,
       { id: user.id, firstName: user.first_name, username: user.username },
       { id: chat.id, title: chat.title || 'Untitled' }
     );
@@ -122,20 +123,11 @@ export async function handleChatJoinRequest(ctx: Context): Promise<void> {
 
     // Log to audit log channel
     ctx.api && LoggerService.logRequestApproved(
-      ctx as any,
+      ctx,
       { id: user.id, firstName: user.first_name, username: user.username },
       { id: chat.id, title: chat.title || 'Untitled' }
     );
   } catch (error) {
     console.error(`[JoinRequest] Failed to approve user ${user.id} in channel ${chat.id}:`, error);
   }
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

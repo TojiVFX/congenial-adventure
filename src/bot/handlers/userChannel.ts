@@ -14,27 +14,8 @@ import { LoggerService } from '../services/loggerService.js';
 import { isAdmin } from './admin.js';
 import { handleContactCommand } from './contact.js';
 import { renderStartMenu } from './start.js';
-
-/**
- * Helper to edit existing prompt message or fallback to reply
- */
-async function editOrReply(
-  ctx: Context,
-  chatId: number | undefined,
-  messageId: number | undefined,
-  text: string,
-  options: any
-): Promise<void> {
-  if (chatId && messageId) {
-    try {
-      await ctx.api.editMessageText(chatId, messageId, text, options);
-      return;
-    } catch (e: any) {
-      console.warn('[UserChannel] Edit message in-place failed, falling back to reply:', e.message);
-    }
-  }
-  await ctx.reply(text, options);
-}
+import { escapeHtml } from '../utils/html.js';
+import { editOrReply } from '../utils/telegram.js';
 
 /**
  * Entry point for /managechat command
@@ -362,7 +343,7 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
     // Refresh channel invite link
     try {
       channel.inviteLink = await LinkService.getOrCreateChannelInviteLink(
-        ctx as any,
+        ctx,
         channel.channelId,
         channel.title
       );
@@ -425,7 +406,7 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
     await ctx.answerCallbackQuery({ text: 'Channel removed successfully.' });
 
     LoggerService.logChannelAction(
-      ctx as any,
+      ctx,
       'Channel Removed by Owner',
       { id: channelId, title },
       from.id
@@ -551,20 +532,24 @@ export async function handleUserChannelInput(ctx: Context): Promise<boolean> {
     }
   }
 
-  // Option C: Channel Username (e.g. @MyChannel)
-  if (!channelId && text && text.startsWith('@')) {
-    try {
-      const chat = await ctx.api.getChat(text);
-      channelId = chat.id;
-    } catch {
-      // Handled below
+  // Option C: Channel Username (e.g. @MyChannel or https://t.me/MyChannel)
+  if (!channelId && text) {
+    const linkMatch = text.match(/(?:https?:\/\/)?(?:www\.)?t\.me\/([a-zA-Z0-9_]{4,})/);
+    const rawUsername = linkMatch ? linkMatch[1] : (text.startsWith('@') ? text.slice(1) : undefined);
+    if (rawUsername && !['joinchat', 'addstickers'].includes(rawUsername.toLowerCase())) {
+      try {
+        const chat = await ctx.api.getChat(`@${rawUsername}`);
+        channelId = chat.id;
+      } catch {
+        // Handled below
+      }
     }
   }
 
   if (!channelId) {
     const retryText =
       `⚠️ <b>ɪɴᴠᴀʟɪᴅ ɪɴᴘᴜᴛ</b>\n\n` +
-      `ᴘʟᴇᴀsᴇ ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ ғʀᴏᴍ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴏʀ sᴇɴᴅ ɪᴛs ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. <code>-1001234567890</code>).\n\n` +
+      `ᴘʟᴇᴀsᴇ ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ ғʀᴏᴍ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ, sᴇɴᴅ ɪᴛs ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. <code>-1001234567890</code>), ᴏʀ sᴇɴᴅ ɪᴛs ʟɪɴᴋ (<code>t.me/yourchannel</code>).\n\n` +
       `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`;
     const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'user_chan_list');
     await editOrReply(ctx, chatId, promptMessageId, retryText, { parse_mode: 'HTML', reply_markup: cancelKb });
@@ -574,7 +559,7 @@ export async function handleUserChannelInput(ctx: Context): Promise<boolean> {
   const botUsername = ctx.me.username;
 
   // Validate and submit channel for admin approval
-  const result = await ChannelService.submitUserChannel(ctx as any, channelId, {
+  const result = await ChannelService.submitUserChannel(ctx, channelId, {
     id: from.id,
     name: from.first_name,
     username: from.username,
@@ -638,7 +623,7 @@ async function resolveNormalChannelLink(
   }
   try {
     const link = await LinkService.getOrCreateNormalChannelLink(
-      ctx as any,
+      ctx,
       channel.channelId,
       channel.title,
       channel.username
@@ -739,7 +724,7 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
     });
     // Remove action buttons if already processed
     try {
-      await ctx.editMessageReplyMarkup({ reply_markup: new InlineKeyboard() });
+      await ctx.editMessageReplyMarkup({ reply_markup: undefined });
     } catch {}
     return;
   }
@@ -751,7 +736,7 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
     let inviteLink = channel.inviteLink;
     try {
       inviteLink = await LinkService.getOrCreateChannelInviteLink(
-        ctx as any,
+        ctx,
         channel.channelId,
         channel.title
       );
@@ -786,7 +771,7 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
     try {
       await ctx.editMessageText(updatedAdminText, {
         parse_mode: 'HTML',
-        reply_markup: updatedAdminKb,
+        ...(normalChannelLink ? { reply_markup: updatedAdminKb } : {}),
       });
     } catch {}
 
@@ -825,7 +810,7 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
     }
 
     LoggerService.logChannelAction(
-      ctx as any,
+      ctx,
       'Channel Approved by Admin',
       { id: channel.channelId, title: channel.title },
       from.id
@@ -855,7 +840,7 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
     try {
       await ctx.editMessageText(updatedAdminText, {
         parse_mode: 'HTML',
-        reply_markup: updatedAdminKb,
+        ...(normalChannelLink ? { reply_markup: updatedAdminKb } : {}),
       });
     } catch {}
 
@@ -874,19 +859,10 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
     }
 
     LoggerService.logChannelAction(
-      ctx as any,
+      ctx,
       'Channel Rejected by Admin',
       { id: channel.channelId, title: channel.title },
       from.id
     );
   }
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

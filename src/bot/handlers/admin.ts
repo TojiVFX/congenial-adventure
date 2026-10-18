@@ -14,6 +14,8 @@ import { ChannelService } from '../services/channelService.js';
 import { LinkService } from '../services/linkService.js';
 import { LoggerService } from '../services/loggerService.js';
 import { updateBotCommands } from '../services/commandService.js';
+import { escapeHtml } from '../utils/html.js';
+import { editOrReply } from '../utils/telegram.js';
 
 export async function isAdmin(userId: number): Promise<boolean> {
   if (config.adminIds.includes(userId)) return true;
@@ -23,27 +25,6 @@ export async function isAdmin(userId: number): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-/**
- * Helper to edit existing prompt message or fallback to reply
- */
-async function editOrReply(
-  ctx: Context,
-  chatId: number | undefined,
-  messageId: number | undefined,
-  text: string,
-  options: any
-): Promise<void> {
-  if (chatId && messageId) {
-    try {
-      await ctx.api.editMessageText(chatId, messageId, text, options);
-      return;
-    } catch (e: any) {
-      console.warn('[Admin] Edit in-place failed, fallback to reply:', e.message);
-    }
-  }
-  await ctx.reply(text, options);
 }
 
 /**
@@ -247,7 +228,7 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
 
     // Log the toggle change
     LoggerService.logChannelAction(
-      ctx as any,
+      ctx,
       channel.autoApproveEnabled ? 'Auto-Approve Enabled' : 'Auto-Approve Disabled',
       { id: channel.channelId, title: channel.title },
       from.id
@@ -261,16 +242,20 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
       ? `<a href="tg://user?id=${channel.addedByUserId}">${escapeHtml(channel.addedByUserName)}</a> (<code>${channel.addedByUserId}</code>)`
       : '<i>ɴᴏᴛ ʀᴇɢɪsᴛᴇʀᴇᴅ</i>';
 
+    const normalLinkDisplay =
+      channel.normalLink || (channel.username ? `https://t.me/${channel.username.replace(/^@/, '')}` : undefined);
+
     const text =
       `📢 <b>ᴄʜᴀɴɴᴇʟ: ${escapeHtml(channel.title)}</b>\n\n` +
       `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
-      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username}` : '<i>ᴘʀɪᴠᴀᴛᴇ</i>'}\n` +
+      `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username.replace(/^@/, '')}` : '<i>ᴘʀɪᴠᴀᴛᴇ</i>'}\n` +
+      (normalLinkDisplay ? `• <b>ɴᴏʀᴍᴀʟ ʟɪɴᴋ:</b> ${normalLinkDisplay}\n` : '') +
       `• <b>ᴀᴅᴅᴇᴅ ʙʏ:</b> ${ownerDisplay}\n` +
       `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ:</b> ${statusText}\n` +
       `• <b>ᴛᴏᴛᴀʟ ʀᴇǫᴜᴇsᴛs:</b> <code>${channel.totalRequests || 0}</code>\n` +
       `• <b>ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${channel.totalApproved || 0}</code>\n\n` +
       `🔗 <b>sʜᴏʀᴛ ʙᴏᴛ ʟɪɴᴋ:</b>\n<code>${deepLink}</code>\n\n` +
-      `📨 <b>ᴅɪʀᴇᴄᴛ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b>\n<code>${channel.inviteLink || 'ɴᴏᴛ ɢᴇɴᴇʀᴀᴛᴇᴅ'}</code>\n\n` +
+      `📨 <b>ᴊᴏɪɴ-ʀᴇǫᴜᴇsᴛ ʟɪɴᴋ:</b>\n<code>${channel.inviteLink || normalLinkDisplay || 'ɴᴏᴛ ɢᴇɴᴇʀᴀᴛᴇᴅ'}</code>\n\n` +
       `<i>👉 ᴛᴀᴘ ᴛʜᴇ ᴄᴏᴘʏ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ɪɴsᴛᴀɴᴛʟʏ ᴄᴏᴘʏ ᴛʜᴇ ʟɪɴᴋ.</i>`;
 
     await ctx.editMessageText(text, {
@@ -374,7 +359,7 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
 
     if (channel) {
       LoggerService.logChannelAction(
-        ctx as any,
+        ctx,
         'Channel Removed',
         { id: channel.channelId, title: channel.title },
         from.id
@@ -492,7 +477,7 @@ export async function handleAdminCallback(ctx: Context): Promise<void> {
 
   // 14. Broadcast Prompt
   if (data === 'admin_broadcast') {
-    const userCount = await User.countDocuments();
+    const userCount = await User.countDocuments({ isBanned: false });
     const promptMsgId = ctx.callbackQuery?.message?.message_id;
     await setAdminSession(from.id, 'WAITING_BROADCAST_MSG', {
       promptMessageId: promptMsgId,
@@ -550,9 +535,12 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
   const chatId = session.data?.chatId || ctx.chat?.id;
 
   // Clean up admin's typed or forwarded message so chat history is kept in one message
-  try {
-    await ctx.deleteMessage();
-  } catch {}
+  // NOTE: Preserve message during WAITING_BROADCAST_MSG because ctx.copyMessage requires source message to exist!
+  if (session.state !== 'WAITING_BROADCAST_MSG') {
+    try {
+      await ctx.deleteMessage();
+    } catch {}
+  }
 
   // Handle cancel command
   if (text === '/cancel') {
@@ -575,12 +563,24 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
       targetChannelId = forwardChat.chat.id;
     } else if (text) {
       const parsed = parseInt(text, 10);
-      if (!isNaN(parsed)) targetChannelId = parsed;
+      if (!isNaN(parsed)) {
+        targetChannelId = parsed;
+      } else {
+        // Support @username or t.me/username link
+        const linkMatch = text.match(/(?:https?:\/\/)?(?:www\.)?t\.me\/([a-zA-Z0-9_]{4,})/);
+        const rawUsername = linkMatch ? linkMatch[1] : (text.startsWith('@') ? text.slice(1) : undefined);
+        if (rawUsername && !['joinchat', 'addstickers'].includes(rawUsername.toLowerCase())) {
+          try {
+            const chat = await ctx.api.getChat(`@${rawUsername}`);
+            targetChannelId = chat.id;
+          } catch {}
+        }
+      }
     }
 
     if (!targetChannelId) {
       const retryText =
-        '⚠️ <b>Invalid Channel ID.</b> Please provide a numeric channel ID (e.g. <code>-1001234567890</code>) or forward a post from the channel.\n\n<i>Send /cancel to return.</i>';
+        '⚠️ <b>Invalid Channel ID or Link.</b> Please provide a numeric channel ID (e.g. <code>-1001234567890</code>), public link (<code>t.me/yourchannel</code>), or forward a post from the channel.\n\n<i>Send /cancel to return.</i>';
       const cancelKb = new InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'admin_channels');
       await editOrReply(ctx, chatId, promptMessageId, retryText, {
         parse_mode: 'HTML',
@@ -589,7 +589,7 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
       return true;
     }
 
-    const result = await ChannelService.addChannel(ctx as any, targetChannelId, {
+    const result = await ChannelService.addChannel(ctx, targetChannelId, {
       id: from.id,
       name: from.first_name,
       username: from.username,
@@ -618,7 +618,7 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
       `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ:</b> ✅ ᴇɴᴀʙʟᴇᴅ\n\n` +
       `🔗 <b>sʜᴏʀᴛ ʙᴏᴛ ʟɪɴᴋ:</b>\n<code>${deepLink}</code>\n\n` +
       `📨 <b>ᴅɪʀᴇᴄᴛ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b>\n<code>${result.channel.inviteLink}</code>\n\n` +
-      `<i>✨ ᴛᴀᴘ ᴛʜᴇ ᴄᴏᴘʏ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ɪɴsᴛᴀɴᴛʟʏ ᴄᴏᴘʏ ᴛʜᴇ ʟɪɴᴋ:</i>`;
+      `<i>✨ ᴛᴀᴘ ᴛʜᴇ ᴄᴏᴘʏ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ɪɴsᴛᴀɴᴛʟʏ ᴄᴏᴘʏ ᴛʜᴇ ʟɪɴᴋ.</i>`;
 
     await editOrReply(ctx, chatId, promptMessageId, successText, {
       parse_mode: 'HTML',
@@ -627,7 +627,7 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
     });
 
     LoggerService.logChannelAction(
-      ctx as any,
+      ctx,
       'Channel Connected',
       { id: result.channel.channelId, title: result.channel.title },
       from.id
@@ -727,24 +727,49 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
     const statusText = `🚀 Starting broadcast to <b>${users.length}</b> users...`;
     await editOrReply(ctx, chatId, promptMessageId, statusText, { parse_mode: 'HTML' });
 
+    const started = Date.now();
+    const TIME_BUDGET_MS = 18000;
     let success = 0;
     let failed = 0;
+    let processed = 0;
+    let rateLimited = false;
 
     for (const u of users) {
+      if (Date.now() - started > TIME_BUDGET_MS) break;
+      processed++;
+
       try {
         await ctx.copyMessage(u.userId);
         success++;
-      } catch {
+      } catch (err: any) {
+        if (err?.error_code === 429) {
+          rateLimited = true;
+          processed--;
+          break;
+        }
         failed++;
       }
       await new Promise(r => setTimeout(r, 40));
     }
 
-    const doneText =
-      `📣 <b>Broadcast Completed!</b>\n\n` +
+    // Now that copyMessage is complete, safely clean up admin's typed/forwarded broadcast message
+    try {
+      await ctx.deleteMessage();
+    } catch {}
+
+    const remaining = users.length - processed;
+    let doneText =
+      `📣 <b>Broadcast ${remaining > 0 ? 'Paused' : 'Completed'}!</b>\n\n` +
       `• <b>Total Targets:</b> <code>${users.length}</code>\n` +
       `• <b>✅ Delivered:</b> <code>${success}</code>\n` +
       `• <b>❌ Failed / Blocked:</b> <code>${failed}</code>`;
+
+    if (remaining > 0) {
+      doneText +=
+        `\n• <b>⏳ Remaining:</b> <code>${remaining}</code>\n\n` +
+        (rateLimited ? `⚠️ Telegram rate limit reached. ` : `⏳ Serverless time budget reached. `) +
+        `Send the broadcast again to continue with the remaining users.`;
+    }
 
     await editOrReply(ctx, chatId, promptMessageId, doneText, {
       parse_mode: 'HTML',
@@ -754,13 +779,4 @@ export async function handleAdminInput(ctx: Context): Promise<boolean> {
   }
 
   return false;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

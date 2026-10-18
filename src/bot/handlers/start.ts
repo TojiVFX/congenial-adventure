@@ -3,6 +3,7 @@ import { User } from '../../db/models/User.js';
 import { LinkService, USER_LINK_TTL_MINUTES } from '../services/linkService.js';
 import { LoggerService } from '../services/loggerService.js';
 import { ChannelService } from '../services/channelService.js';
+import { escapeHtml } from '../utils/html.js';
 
 export async function handleStart(ctx: Context): Promise<void> {
   const from = ctx.from;
@@ -48,7 +49,7 @@ export async function handleStart(ctx: Context): Promise<void> {
   if (isNewUser) {
     try {
       ctx.api && (await LoggerService.logUserStart(
-        ctx as any,
+        ctx,
         {
           id: from.id,
           firstName: from.first_name,
@@ -79,7 +80,7 @@ export async function handleStart(ctx: Context): Promise<void> {
   }
 
   // 5. Check if user is already a member
-  const isMember = await ChannelService.isUserMember(ctx as any, channel.channelId, from.id);
+  const isMember = await ChannelService.isUserMember(ctx, channel.channelId, from.id);
   if (isMember) {
     const normalLink =
       channel.normalLink || (channel.username ? `https://t.me/${channel.username.replace(/^@/, '')}` : undefined);
@@ -89,7 +90,10 @@ export async function handleStart(ctx: Context): Promise<void> {
     }
     await ctx.reply(
       `✅ <b>Already a Member</b>\n\nYou are already a member of <b>${escapeHtml(channel.title)}</b>.\nFeel free to open the channel anytime.`,
-      { parse_mode: 'HTML', reply_markup: openKb }
+      {
+        parse_mode: 'HTML',
+        ...(normalLink ? { reply_markup: openKb } : {}),
+      }
     );
     return;
   }
@@ -97,7 +101,7 @@ export async function handleStart(ctx: Context): Promise<void> {
   // 6. Generate a personal join-request link for THIS user that expires in 10 minutes
   let userLink: string;
   try {
-    const result = await LinkService.getOrCreateUserInviteLink(ctx as any, channel.channelId, from.id);
+    const result = await LinkService.getOrCreateUserInviteLink(ctx, channel.channelId, from.id);
     userLink = result.link;
   } catch (err) {
     console.error('[handleStart] Failed to create personal invite link:', err);
@@ -179,13 +183,4 @@ export async function handleHelp(ctx: Context): Promise<void> {
     `  sᴇɴᴅ /contact ᴛᴏ ᴍᴇssᴀɢᴇ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ᴅɪʀᴇᴄᴛʟʏ.`;
 
   await ctx.reply(text, { parse_mode: 'HTML' });
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

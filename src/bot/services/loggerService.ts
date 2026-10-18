@@ -1,8 +1,20 @@
-import { Bot } from 'grammy';
+import { Bot, Api } from 'grammy';
 import { config } from '../../config.js';
 import { getGlobalSettings } from '../../db/models/Settings.js';
+import { escapeHtml } from '../utils/html.js';
+
+export type BotOrApi = Bot | Api | { api: Api };
 
 export class LoggerService {
+  /**
+   * Helper to safely extract Api instance from Bot, Api, or Context
+   */
+  private static getApi(botOrApi: BotOrApi): Api {
+    return 'api' in botOrApi && (botOrApi as any).api
+      ? ((botOrApi as any).api as Api)
+      : (botOrApi as Api);
+  }
+
   /**
    * Retrieves the active log channel ID from DB or environment variables
    */
@@ -19,12 +31,13 @@ export class LoggerService {
   /**
    * Sends a formatted log message to the log channel
    */
-  private static async sendLog(bot: Bot, message: string): Promise<void> {
+  private static async sendLog(botOrApi: BotOrApi, message: string): Promise<void> {
     try {
       const logChannelId = await this.getLogChannelId();
       if (!logChannelId) return; // No log channel configured
 
-      await bot.api.sendMessage(logChannelId, message, {
+      const api = this.getApi(botOrApi);
+      await api.sendMessage(logChannelId, message, {
         parse_mode: 'HTML',
         link_preview_options: { is_disabled: true },
       });
@@ -37,7 +50,7 @@ export class LoggerService {
    * Log: New user started the bot
    */
   static async logUserStart(
-    bot: Bot,
+    botOrApi: BotOrApi,
     user: { id: number; firstName: string; username?: string },
     payload?: string
   ): Promise<void> {
@@ -53,14 +66,14 @@ export class LoggerService {
       `• <b>sᴛᴀʀᴛ ᴘᴀʏʟᴏᴀᴅ:</b> ${payloadDisplay}\n` +
       `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
 
-    await this.sendLog(bot, text);
+    await this.sendLog(botOrApi, text);
   }
 
   /**
    * Log: Join request auto-approved
    */
   static async logRequestApproved(
-    bot: Bot,
+    botOrApi: BotOrApi,
     user: { id: number; firstName: string; username?: string },
     channel: { id: number; title: string }
   ): Promise<void> {
@@ -76,14 +89,14 @@ export class LoggerService {
       `• <b>sᴛᴀᴛᴜs:</b> ✅ <b>ᴀᴘᴘʀᴏᴠᴇᴅ ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ</b>\n` +
       `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
 
-    await this.sendLog(bot, text);
+    await this.sendLog(botOrApi, text);
   }
 
   /**
    * Log: Join request received but kept pending (auto-approve disabled)
    */
   static async logRequestPending(
-    bot: Bot,
+    botOrApi: BotOrApi,
     user: { id: number; firstName: string; username?: string },
     channel: { id: number; title: string }
   ): Promise<void> {
@@ -99,14 +112,14 @@ export class LoggerService {
       `• <b>sᴛᴀᴛᴜs:</b> ⏳ <b>ʟᴇғᴛ ᴘᴇɴᴅɪɴɢ</b>\n` +
       `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
 
-    await this.sendLog(bot, text);
+    await this.sendLog(botOrApi, text);
   }
 
   /**
    * Log: Channel added or updated
    */
   static async logChannelAction(
-    bot: Bot,
+    botOrApi: BotOrApi,
     action: string,
     channel: { id: number; title: string },
     adminId: number
@@ -119,15 +132,6 @@ export class LoggerService {
       `• <b>ᴘᴇʀғᴏʀᴍᴇᴅ ʙʏ ᴀᴅᴍɪɴ:</b> <code>${adminId}</code>\n` +
       `• <b>ᴛɪᴍᴇsᴛᴀᴍᴘ:</b> <code>${time} UTC</code>`;
 
-    await this.sendLog(bot, text);
+    await this.sendLog(botOrApi, text);
   }
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

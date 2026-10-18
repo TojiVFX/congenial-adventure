@@ -2,6 +2,7 @@ import { Context, InlineKeyboard } from 'grammy';
 import { config } from '../../config.js';
 import { getGlobalSettings, setAdminSession, getAdminSession, clearAdminSession } from '../../db/models/Settings.js';
 import { LoggerService } from '../services/loggerService.js';
+import { escapeHtml } from '../utils/html.js';
 
 export async function handleContactCommand(ctx: Context): Promise<void> {
   const from = ctx.from;
@@ -83,13 +84,14 @@ export async function handleContactMessage(ctx: Context): Promise<boolean> {
 
   await clearAdminSession(from.id);
 
-  let content = text || '<i>Forwarded media / channel post</i>';
   const forwardChat = ctx.message?.forward_origin;
-  if (forwardChat && forwardChat.type === 'channel' && forwardChat.chat) {
-    content += `\n\n📢 <b>ғᴏʀᴡᴀʀᴅᴇᴅ ᴄʜᴀɴɴᴇʟ:</b> ${escapeHtml(forwardChat.chat.title || 'Channel')} (<code>${forwardChat.chat.id}</code>)`;
-  }
+  const forwardedChannel =
+    forwardChat && forwardChat.type === 'channel' && forwardChat.chat
+      ? { id: forwardChat.chat.id, title: forwardChat.chat.title || 'Channel' }
+      : undefined;
 
-  await sendContactToAdmins(ctx, content);
+  const content = text || 'Forwarded media / channel post';
+  await sendContactToAdmins(ctx, content, forwardedChannel);
 
   const confirmText =
     `✅ <b>ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʜᴀs ʙᴇᴇɴ sᴇɴᴛ!</b>\n\n` +
@@ -108,10 +110,19 @@ export async function handleContactMessage(ctx: Context): Promise<boolean> {
   return true;
 }
 
-async function sendContactToAdmins(ctx: Context, messageContent: string): Promise<void> {
+async function sendContactToAdmins(
+  ctx: Context,
+  messageContent: string,
+  forwardedChannel?: { id: number; title: string }
+): Promise<void> {
   const from = ctx.from!;
   const usernameDisplay = from.username ? `@${from.username}` : '<i>ɴᴏɴᴇ</i>';
   const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+  let forwardInfo = '';
+  if (forwardedChannel) {
+    forwardInfo = `\n\n📢 <b>ғᴏʀᴡᴀʀᴅᴇᴅ ᴄʜᴀɴɴᴇʟ:</b> ${escapeHtml(forwardedChannel.title)} (<code>${forwardedChannel.id}</code>)`;
+  }
 
   const adminText =
     `📬 <b>ɴᴇᴡ ᴄʜᴀɴɴᴇʟ / sᴜᴘᴘᴏʀᴛ ʀᴇǫᴜᴇsᴛ</b>\n\n` +
@@ -120,7 +131,8 @@ async function sendContactToAdmins(ctx: Context, messageContent: string): Promis
     `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${usernameDisplay}\n` +
     `• <b>ᴛɪᴍᴇ:</b> <code>${time} UTC</code>\n\n` +
     `💬 <b>ᴍᴇssᴀɢᴇ:</b>\n` +
-    `<blockquote>${escapeHtml(messageContent)}</blockquote>`;
+    `<blockquote>${escapeHtml(messageContent)}</blockquote>` +
+    forwardInfo;
 
   const replyKb = new InlineKeyboard().url('💬 ᴄᴏɴᴛᴀᴄᴛ ᴜsᴇʀ', `tg://user?id=${from.id}`);
 
@@ -151,13 +163,4 @@ async function sendContactToAdmins(ctx: Context, messageContent: string): Promis
       console.warn('[Contact] Could not deliver to log channel:', e);
     }
   }
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

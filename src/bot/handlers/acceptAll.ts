@@ -1,8 +1,10 @@
 import { Context } from 'grammy';
 import { Channel } from '../../db/models/Channel.js';
 import { RequestLog } from '../../db/models/RequestLog.js';
+import { InviteLink } from '../../db/models/InviteLink.js';
 import { LoggerService } from '../services/loggerService.js';
 import { isAdmin } from './admin.js';
+import { escapeHtml } from '../utils/html.js';
 
 // Vercel webhook timeout is 25s, so stop early and let the user re-run for the rest
 const TIME_BUDGET_MS = 18000;
@@ -77,6 +79,11 @@ export async function handleAcceptAllCommand(ctx: Context): Promise<void> {
         { channelId, userId, status: 'pending' },
         { status: 'approved', reason: 'Approved via /acceptall' }
       );
+      // Mark any personal expiring invite link as used
+      await InviteLink.updateMany(
+        { channelId, userId, used: false },
+        { used: true }
+      );
       approved++;
     } catch (e: any) {
       const msg: string = e?.description || e?.message || '';
@@ -131,19 +138,10 @@ export async function handleAcceptAllCommand(ctx: Context): Promise<void> {
 
   if (approved > 0) {
     LoggerService.logChannelAction(
-      ctx as any,
+      ctx,
       `Bulk Approved ${approved} Requests`,
       { id: channel.channelId, title: channel.title },
       from.id
     );
   }
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

@@ -19,7 +19,13 @@ if (!global.mongooseCache) {
 
 export async function connectDB(): Promise<typeof mongoose> {
   if (cached.conn) {
-    return cached.conn;
+    if (cached.conn.connection.readyState === 1) {
+      return cached.conn;
+    }
+    // Socket was dropped or disconnected during serverless lambda freeze
+    console.warn('[DB] Cached connection is no longer ready (readyState !== 1). Reconnecting...');
+    cached.conn = null;
+    cached.promise = null;
   }
 
   if (!config.mongodbUri) {
@@ -42,6 +48,7 @@ export async function connectDB(): Promise<typeof mongoose> {
   try {
     cached.conn = await cached.promise;
   } catch (e) {
+    cached.conn = null;
     cached.promise = null;
     console.error('[DB] Error connecting to MongoDB:', e);
     throw e;

@@ -1,4 +1,4 @@
-import { Bot, webhookCallback } from 'grammy';
+import { Bot } from 'grammy';
 import { config, validateConfig } from '../config.js';
 import { connectDB } from '../db/connection.js';
 import { handleStart, handleHelp } from './handlers/start.js';
