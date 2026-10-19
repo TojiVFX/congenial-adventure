@@ -1,0 +1,714 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.handleManageChatCommand = handleManageChatCommand;
+exports.handleUserChannelCallback = handleUserChannelCallback;
+exports.handleUserChannelInput = handleUserChannelInput;
+exports.handleAdminApprovalCallback = handleAdminApprovalCallback;
+const grammy_1 = require("grammy");
+const Channel_js_1 = require("../../db/models/Channel.js");
+const User_js_1 = require("../../db/models/User.js");
+const config_js_1 = require("../../config.js");
+const Settings_js_1 = require("../../db/models/Settings.js");
+const channelService_js_1 = require("../services/channelService.js");
+const linkService_js_1 = require("../services/linkService.js");
+const loggerService_js_1 = require("../services/loggerService.js");
+const admin_js_1 = require("./admin.js");
+const contact_js_1 = require("./contact.js");
+const start_js_1 = require("./start.js");
+const html_js_1 = require("../utils/html.js");
+const telegram_js_1 = require("../utils/telegram.js");
+/**
+ * Entry point for /managechat command
+ */
+async function handleManageChatCommand(ctx) {
+    const from = ctx.from;
+    if (!from)
+        return;
+    await (0, Settings_js_1.clearAdminSession)(from.id);
+    const channels = await Channel_js_1.Channel.find({ addedByUserId: from.id }).sort({ createdAt: -1 });
+    let text;
+    let kb;
+    if (channels.length === 0) {
+        text =
+            `⚙️ <b>ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴅᴀsʜʙᴏᴀʀᴅ</b>\n\n` +
+                `ʏᴏᴜ ʜᴀᴠᴇ ɴᴏᴛ ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴀɴʏ ᴄʜᴀɴɴᴇʟs ʏᴇᴛ.\n\n` +
+                `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ ᴍᴇᴍʙᴇʀs:</b> ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ ᴀᴄᴄᴇᴘᴛ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs.\n` +
+                `• <b>sʜᴀʀᴇᴀʙʟᴇ ᴅᴇᴇᴘ-ʟɪɴᴋs:</b> ɢᴇᴛ ᴘʀᴇᴍɪᴜᴍ sʜᴏʀᴛ ʟɪɴᴋs ғᴏʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ.\n` +
+                `• <b>ᴘʀɪᴠᴀᴄʏ:</b> ʏᴏᴜ ᴍᴀɪɴᴛᴀɪɴ ғᴜʟʟ ᴄᴏɴᴛʀᴏʟ ᴏᴠᴇʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ sᴇᴛᴛɪɴɢs.`;
+        kb = new grammy_1.InlineKeyboard()
+            .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+            .primary()
+            .row()
+            .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
+    }
+    else {
+        const rendered = renderUserChannelList(channels);
+        text = rendered.text;
+        kb = rendered.keyboard;
+    }
+    if (ctx.callbackQuery) {
+        try {
+            await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+            return;
+        }
+        catch { }
+    }
+    await ctx.reply(text, { parse_mode: 'HTML', reply_markup: kb });
+}
+/**
+ * Renders channel list for a specific user
+ */
+function renderUserChannelList(channels) {
+    const text = `⚙️ <b>ʏᴏᴜʀ ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴄʜᴀɴɴᴇʟs</b>\n\n` +
+        `sᴇʟᴇᴄᴛ ᴀ ᴄʜᴀɴɴᴇʟ ʙᴇʟᴏᴡ ᴛᴏ ᴍᴀɴᴀɢᴇ sᴇᴛᴛɪɴɢs, ᴄᴏᴘʏ ʟɪɴᴋs, ᴏʀ ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ:`;
+    const kb = new grammy_1.InlineKeyboard();
+    for (const ch of channels) {
+        let prefix = '📢';
+        let suffix = '';
+        if (ch.status === 'pending') {
+            prefix = '⏳';
+            suffix = ' (ᴘᴇɴᴅɪɴɢ)';
+        }
+        else if (ch.status === 'rejected') {
+            prefix = '❌';
+            suffix = ' (ᴅᴇᴄʟɪɴᴇᴅ)';
+        }
+        else if (ch.autoApproveEnabled) {
+            prefix = '✅';
+        }
+        else {
+            prefix = '⏸️';
+        }
+        const callback = ch.status === 'pending'
+            ? `user_chan_pending:${ch._id}`
+            : ch.status === 'rejected'
+                ? `user_chan_rejected:${ch._id}`
+                : `user_chan_view:${ch._id}`;
+        kb.text(`${prefix} ${ch.title}${suffix}`, callback).row();
+    }
+    kb.text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+        .primary()
+        .text('🔄 ʀᴇғʀᴇsʜ', 'user_chan_list')
+        .row()
+        .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
+    return { text, keyboard: kb };
+}
+/**
+ * Renders details and controls for a single approved channel
+ */
+function renderUserChannelDetail(channel, botUsername) {
+    const botDeepLink = linkService_js_1.LinkService.getBotDeepLink(botUsername, channel.startPayload);
+    const statusLabel = channel.autoApproveEnabled
+        ? '✅ <b>ᴇɴᴀʙʟᴇᴅ (ɪɴsᴛᴀɴᴛ ᴀᴘᴘʀᴏᴠᴀʟ)</b>'
+        : '⏸️ <b>ᴅɪsᴀʙʟᴇᴅ (ᴍᴀɴᴜᴀʟ ʀᴇᴠɪᴇᴡ)</b>';
+    const normalLink = channel.normalLink || (channel.username ? `https://t.me/${channel.username.replace(/^@/, '')}` : undefined);
+    const channelLinkDisplay = channel.inviteLink || normalLink || 'Generating...';
+    const text = `📢 <b>${(0, html_js_1.escapeHtml)(channel.title)}</b>\n\n` +
+        `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
+        `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username.replace(/^@/, '')}` : '<i>ɴᴏɴᴇ</i>'}\n` +
+        (normalLink ? `• <b>ɴᴏʀᴍᴀʟ ʟɪɴᴋ:</b> ${normalLink}\n` : '') +
+        `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ:</b> ${statusLabel}\n` +
+        `• <b>ᴛᴏᴛᴀʟ ʀᴇǫᴜᴇsᴛs:</b> <code>${channel.totalRequests || 0}</code>\n` +
+        `• <b>ᴛᴏᴛᴀʟ ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${channel.totalApproved || 0}</code>\n\n` +
+        `🔗 <b>ʙᴏᴛ ᴅᴇᴇᴘ-ʟɪɴᴋ:</b>\n<code>${botDeepLink}</code>\n\n` +
+        `📨 <b>ᴄʜᴀɴɴᴇʟ ɪɴᴠɪᴛᴇ ʟɪɴᴋ:</b>\n<code>${channelLinkDisplay}</code>`;
+    const toggleBtnText = channel.autoApproveEnabled
+        ? '⏸️ ᴅɪsᴀʙʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ'
+        : '✅ ᴇɴᴀʙʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ';
+    const kb = new grammy_1.InlineKeyboard();
+    if (channel.autoApproveEnabled) {
+        kb.text(toggleBtnText, `user_chan_toggle:${channel._id}`).danger().row();
+    }
+    else {
+        kb.text(toggleBtnText, `user_chan_toggle:${channel._id}`).success().row();
+    }
+    // Premium 1-tap copy buttons
+    kb.copyText('📋 ᴄᴏᴘʏ ʙᴏᴛ ʟɪɴᴋ', botDeepLink);
+    const copyTarget = channel.inviteLink || normalLink;
+    if (copyTarget) {
+        kb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', copyTarget);
+    }
+    kb.row();
+    kb.text('🔄 ɴᴇᴡ sʜᴏʀᴛ ʟɪɴᴋ', `user_chan_regen:${channel._id}`)
+        .text('🗑️ ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ', `user_chan_del_confirm:${channel._id}`)
+        .danger()
+        .row()
+        .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
+    return { text, keyboard: kb };
+}
+/**
+ * Handles all user channel callback queries
+ */
+async function handleUserChannelCallback(ctx) {
+    const data = ctx.callbackQuery?.data;
+    const from = ctx.from;
+    if (!data || !from)
+        return;
+    const botUsername = ctx.me.username;
+    // 1. Back to channel list
+    if (data === 'user_chan_list') {
+        await ctx.answerCallbackQuery();
+        await (0, Settings_js_1.clearAdminSession)(from.id);
+        const channels = await Channel_js_1.Channel.find({ addedByUserId: from.id }).sort({ createdAt: -1 });
+        if (channels.length === 0) {
+            await handleManageChatCommand(ctx);
+            return;
+        }
+        const { text, keyboard } = renderUserChannelList(channels);
+        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: keyboard });
+        return;
+    }
+    // 1b. Contact admin flow from inline button
+    if (data === 'user_chan_contact') {
+        await ctx.answerCallbackQuery();
+        await (0, contact_js_1.handleContactCommand)(ctx);
+        return;
+    }
+    // 1c. Return to Main Start Menu
+    if (data === 'user_chan_menu') {
+        await ctx.answerCallbackQuery();
+        await (0, Settings_js_1.clearAdminSession)(from.id);
+        const { text, keyboard } = (0, start_js_1.renderStartMenu)(from.first_name, false);
+        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: keyboard });
+        return;
+    }
+    // 1d. User Profile View
+    if (data === 'user_chan_profile') {
+        await ctx.answerCallbackQuery();
+        await (0, Settings_js_1.clearAdminSession)(from.id);
+        const user = await User_js_1.User.findOne({ userId: from.id });
+        const channels = await Channel_js_1.Channel.find({ addedByUserId: from.id });
+        const memberSince = user?.createdAt
+            ? user.createdAt.toISOString().substring(0, 10)
+            : new Date().toISOString().substring(0, 10);
+        const totalApproved = channels.reduce((sum, ch) => sum + (ch.totalApproved || 0), 0);
+        const totalRequests = channels.reduce((sum, ch) => sum + (ch.totalRequests || 0), 0);
+        const approvedChannels = channels.filter(ch => ch.status === 'approved').length;
+        const pendingChannels = channels.filter(ch => ch.status === 'pending').length;
+        const usernameDisplay = from.username ? `@${from.username}` : '<i>ɴᴏɴᴇ</i>';
+        const profileText = `👤 <b>ʏᴏᴜʀ ᴘʀᴏғɪʟᴇ</b>\n\n` +
+            `• <b>ɴᴀᴍᴇ:</b> ${(0, html_js_1.escapeHtml)(from.first_name)}${from.last_name ? ' ' + (0, html_js_1.escapeHtml)(from.last_name) : ''}\n` +
+            `• <b>ᴜsᴇʀ ɪᴅ:</b> <code>${from.id}</code>\n` +
+            `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${usernameDisplay}\n` +
+            `• <b>ᴀᴄᴄᴏᴜɴᴛ sᴛᴀᴛᴜs:</b> ✅ <b>ᴀᴄᴛɪᴠᴇ</b>\n` +
+            `• <b>ᴍᴇᴍʙᴇʀ sɪɴᴄᴇ:</b> <code>${memberSince}</code>\n\n` +
+            `📊 <b>ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ sᴛᴀᴛɪsᴛɪᴄs:</b>\n` +
+            `• <b>ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴄʜᴀɴɴᴇʟs:</b> <code>${channels.length}</code> (${approvedChannels} ᴀᴘᴘʀᴏᴠᴇᴅ${pendingChannels > 0 ? `, ${pendingChannels} ᴘᴇɴᴅɪɴɢ` : ''})\n` +
+            `• <b>ᴛᴏᴛᴀʟ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs:</b> <code>${totalRequests}</code>\n` +
+            `• <b>ᴛᴏᴛᴀʟ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇᴅ:</b> <code>${totalApproved}</code>\n\n` +
+            `<i>💡 ᴛᴀᴘ ʙᴇʟᴏᴡ ᴛᴏ sᴜʙᴍɪᴛ ᴏʀ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs.</i>`;
+        const profileKb = new grammy_1.InlineKeyboard()
+            .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+            .primary()
+            .text('⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list')
+            .row()
+            .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
+        await ctx.editMessageText(profileText, { parse_mode: 'HTML', reply_markup: profileKb });
+        return;
+    }
+    // 1e. About Bot View
+    if (data === 'user_chan_about') {
+        await ctx.answerCallbackQuery();
+        await (0, Settings_js_1.clearAdminSession)(from.id);
+        const aboutText = `ℹ️ <b>ᴀʙᴏᴜᴛ ᴛʜɪs ʙᴏᴛ</b>\n\n` +
+            `⚡ <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ɢᴀᴛᴇᴡᴀʏ</b>\n` +
+            `ᴀ ꜰᴀsᴛ, ʜᴀssʟᴇ-ꜰʀᴇᴇ ᴡᴀʏ ᴛᴏ ɢʀᴏᴡ ʏᴏᴜʀ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀɴɴᴇʟ ᴏʀ ɢʀᴏᴜᴘ. ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs ɢᴇᴛ ᴀᴘᴘʀᴏᴠᴇᴅ ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ, ᴀʟʟ ᴅᴀʏ, ᴇᴠᴇʀʏ ᴅᴀʏ.\n\n` +
+            `✨ <b>ᴡʜᴀᴛ ʏᴏᴜ ɢᴇᴛ:</b>\n` +
+            `• ⚡ <b>ɪɴsᴛᴀɴᴛ ᴀᴘᴘʀᴏᴠᴀʟ:</b> ʀᴇǫᴜᴇsᴛs ᴀʀᴇ ᴀᴄᴄᴇᴘᴛᴇᴅ ᴛʜᴇ ᴍᴏᴍᴇɴᴛ ᴛʜᴇʏ ᴀʀʀɪᴠᴇ.\n` +
+            `• 📥 <b>ʙᴜʟᴋ ᴀᴄᴄᴇᴘᴛ:</b> ᴀᴘᴘʀᴏᴠᴇ ᴀʟʟ ᴘᴇɴᴅɪɴɢ ʀᴇǫᴜᴇsᴛs ᴀᴛ ᴏɴᴄᴇ ᴡɪᴛʜ /acceptall.\n` +
+            `• 🔗 <b>sʜᴏʀᴛ ʟɪɴᴋs:</b> ᴄʟᴇᴀɴ ɪɴᴠɪᴛᴇ ʟɪɴᴋs (<code>inv_XXXXXXXX</code>) ʏᴏᴜ ᴄᴀɴ ʀᴇɢᴇɴᴇʀᴀᴛᴇ ᴀɴʏᴛɪᴍᴇ.\n` +
+            `• 🎛️ <b>ꜰᴜʟʟ ᴄᴏɴᴛʀᴏʟ:</b> ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ᴏɴ ᴏʀ ᴏꜰꜰ, ᴏʀ ᴅɪsᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴡʜᴇɴᴇᴠᴇʀ ʏᴏᴜ ʟɪᴋᴇ.\n` +
+            `• 🛡️ <b>ᴘʀɪᴠᴀᴛᴇ:</b> ᴏɴʟʏ ʏᴏᴜ ᴄᴀɴ sᴇᴇ ᴀɴᴅ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʜᴀɴɴᴇʟs.\n` +
+            `• 📩 <b>sᴜᴘᴘᴏʀᴛ:</b> ɴᴇᴇᴅ ʜᴇʟᴘ? ʀᴇᴀᴄʜ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ᴠɪᴀ /contact.`;
+        const aboutKb = new grammy_1.InlineKeyboard()
+            .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
+            .primary()
+            .text('📩 ᴄᴏɴᴛᴀᴄᴛ', 'user_chan_contact')
+            .row()
+            .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
+        await ctx.editMessageText(aboutText, { parse_mode: 'HTML', reply_markup: aboutKb });
+        return;
+    }
+    // 2. Add new channel initiation
+    if (data === 'user_chan_add') {
+        await ctx.answerCallbackQuery();
+        const promptMsgId = ctx.callbackQuery?.message?.message_id;
+        await (0, Settings_js_1.setAdminSession)(from.id, 'WAITING_USER_CHANNEL_INPUT', {
+            promptMessageId: promptMsgId,
+            chatId: ctx.chat?.id,
+        });
+        const promptText = `➕ <b>ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ</b>\n\n` +
+            `<b>sᴛᴇᴘ 1:</b> ᴀᴅᴅ @${botUsername} ᴛᴏ ʏᴏᴜʀ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀɴɴᴇʟ ᴀs ᴀɴ <b>ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ</b>.\n` +
+            `<i>(ᴍᴀᴋᴇ sᴜʀᴇ "ɪɴᴠɪᴛᴇ ᴜsᴇʀs ᴠɪᴀ ʟɪɴᴋ" ᴘᴇʀᴍɪssɪᴏɴ ɪs ᴇɴᴀʙʟᴇᴅ)</i>\n\n` +
+            `<b>sᴛᴇᴘ 2:</b> ғᴏʀᴡᴀʀᴅ ᴀɴʏ ᴘᴏsᴛ ғʀᴏᴍ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴇʀᴇ, ᴏʀ sᴇɴᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. <code>-1001234567890</code>).\n\n` +
+            `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ ᴀᴛ ᴀɴʏ ᴛɪᴍᴇ.</i>`;
+        const cancelKb = new grammy_1.InlineKeyboard()
+            .text('⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list')
+            .text('🔙 ᴍᴀɪɴ ᴍᴇɴᴜ', 'user_chan_menu');
+        await ctx.editMessageText(promptText, { parse_mode: 'HTML', reply_markup: cancelKb });
+        return;
+    }
+    // 3. View single approved channel
+    if (data.startsWith('user_chan_view:')) {
+        await ctx.answerCallbackQuery();
+        const chanDbId = data.split(':')[1];
+        const channel = await Channel_js_1.Channel.findById(chanDbId);
+        if (!channel || (channel.addedByUserId !== from.id && !(await (0, admin_js_1.isAdmin)(from.id)))) {
+            await ctx.editMessageText('⚠️ <b>ᴄʜᴀɴɴᴇʟ ɴᴏᴛ ғᴏᴜɴᴅ ᴏʀ ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ.</b>', {
+                parse_mode: 'HTML',
+                reply_markup: new grammy_1.InlineKeyboard().text('🔙 ʙᴀᴄᴋ', 'user_chan_list'),
+            });
+            return;
+        }
+        const { text, keyboard } = renderUserChannelDetail(channel, botUsername);
+        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: keyboard });
+        return;
+    }
+    // 4. Toggle auto-approval
+    if (data.startsWith('user_chan_toggle:')) {
+        const chanDbId = data.split(':')[1];
+        const channel = await Channel_js_1.Channel.findById(chanDbId);
+        if (!channel || (channel.addedByUserId !== from.id && !(await (0, admin_js_1.isAdmin)(from.id)))) {
+            await ctx.answerCallbackQuery({ text: 'Access denied.' });
+            return;
+        }
+        channel.autoApproveEnabled = !channel.autoApproveEnabled;
+        await channel.save();
+        await ctx.answerCallbackQuery({
+            text: channel.autoApproveEnabled ? 'Auto-approval enabled' : 'Auto-approval disabled',
+        });
+        const { text, keyboard } = renderUserChannelDetail(channel, botUsername);
+        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: keyboard });
+        return;
+    }
+    // 5. Regenerate short deep link
+    if (data.startsWith('user_chan_regen:')) {
+        const chanDbId = data.split(':')[1];
+        const channel = await Channel_js_1.Channel.findById(chanDbId);
+        if (!channel || (channel.addedByUserId !== from.id && !(await (0, admin_js_1.isAdmin)(from.id)))) {
+            await ctx.answerCallbackQuery({ text: 'Access denied.' });
+            return;
+        }
+        // Generate clean short payload
+        channel.startPayload = linkService_js_1.LinkService.generateStartPayload(8);
+        // Refresh channel invite link
+        try {
+            channel.inviteLink = await linkService_js_1.LinkService.getOrCreateChannelInviteLink(ctx, channel.channelId, channel.title);
+        }
+        catch (e) {
+            console.warn('[UserChannel] Could not refresh invite link:', e);
+        }
+        await channel.save();
+        await ctx.answerCallbackQuery({ text: '✅ New short link generated!' });
+        const { text, keyboard } = renderUserChannelDetail(channel, botUsername);
+        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: keyboard });
+        return;
+    }
+    // 6. Channel deletion confirmation
+    if (data.startsWith('user_chan_del_confirm:')) {
+        await ctx.answerCallbackQuery();
+        const chanDbId = data.split(':')[1];
+        const channel = await Channel_js_1.Channel.findById(chanDbId);
+        if (!channel || (channel.addedByUserId !== from.id && !(await (0, admin_js_1.isAdmin)(from.id)))) {
+            await ctx.editMessageText('⚠️ <b>ᴄʜᴀɴɴᴇʟ ɴᴏᴛ ғᴏᴜɴᴅ ᴏʀ ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ.</b>', {
+                parse_mode: 'HTML',
+                reply_markup: new grammy_1.InlineKeyboard().text('🔙 ʙᴀᴄᴋ', 'user_chan_list'),
+            });
+            return;
+        }
+        const confirmText = `⚠️ <b>ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ?</b>\n\n` +
+            `ᴀʀᴇ ʏᴏᴜ sᴜʀᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴅɪsᴄᴏɴɴᴇᴄᴛ <b>${(0, html_js_1.escapeHtml)(channel.title)}</b>?\n\n` +
+            `• ʏᴏᴜʀ ʙᴏᴛ ᴅᴇᴇᴘ-ʟɪɴᴋ ᴡɪʟʟ ʙᴇ ɪɴᴠᴀʟɪᴅᴀᴛᴇᴅ.\n` +
+            `• ɴᴇᴡ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs ᴡɪʟʟ ɴᴏ ʟᴏɴɢᴇʀ ʙᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇᴅ.\n` +
+            `• ʏᴏᴜʀ ᴛᴇʟᴇɢʀᴀᴍ ᴄʜᴀɴɴᴇʟ ɪᴛsᴇʟғ ᴡɪʟʟ ɴᴏᴛ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ.`;
+        const confirmKb = new grammy_1.InlineKeyboard()
+            .text('🗑️ ʏᴇs, ʀᴇᴍᴏᴠᴇ', `user_chan_del:${channel._id}`)
+            .danger()
+            .row()
+            .text('🔙 ᴄᴀɴᴄᴇʟ', `user_chan_view:${channel._id}`);
+        await ctx.editMessageText(confirmText, { parse_mode: 'HTML', reply_markup: confirmKb });
+        return;
+    }
+    // 7. Confirmed channel deletion
+    if (data.startsWith('user_chan_del:')) {
+        const chanDbId = data.split(':')[1];
+        const channel = await Channel_js_1.Channel.findById(chanDbId);
+        if (!channel || (channel.addedByUserId !== from.id && !(await (0, admin_js_1.isAdmin)(from.id)))) {
+            await ctx.answerCallbackQuery({ text: 'Access denied.' });
+            return;
+        }
+        const title = channel.title;
+        const channelId = channel.channelId;
+        await Channel_js_1.Channel.deleteOne({ _id: channel._id });
+        await ctx.answerCallbackQuery({ text: 'Channel removed successfully.' });
+        loggerService_js_1.LoggerService.logChannelAction(ctx, 'Channel Removed by Owner', { id: channelId, title }, from.id);
+        const deletedText = `✅ <b>ᴄʜᴀɴɴᴇʟ ʀᴇᴍᴏᴠᴇᴅ!</b>\n\n` +
+            `<b>${(0, html_js_1.escapeHtml)(title)}</b> ʜᴀs ʙᴇᴇɴ ᴅɪsᴄᴏɴɴᴇᴄᴛᴇᴅ ғʀᴏᴍ ᴛʜᴇ ʙᴏᴛ.\n\n` +
+            `ʏᴏᴜ ᴄᴀɴ ᴀᴅᴅ ɪᴛ ᴏʀ ᴀɴᴏᴛʜᴇʀ ᴄʜᴀɴɴᴇʟ ᴀɢᴀɪɴ ᴀɴʏᴛɪᴍᴇ.`;
+        const backKb = new grammy_1.InlineKeyboard().text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
+        await ctx.editMessageText(deletedText, { parse_mode: 'HTML', reply_markup: backKb });
+        return;
+    }
+    // 8. Pending channel review info
+    if (data.startsWith('user_chan_pending:')) {
+        await ctx.answerCallbackQuery();
+        const chanDbId = data.split(':')[1];
+        const channel = await Channel_js_1.Channel.findById(chanDbId);
+        const normalLink = channel?.normalLink ||
+            (channel?.username ? `https://t.me/${channel.username.replace(/^@/, '')}` : undefined);
+        const text = `⏳ <b>ᴄʜᴀɴɴᴇʟ ᴘᴇɴᴅɪɴɢ ʀᴇᴠɪᴇᴡ</b>\n\n` +
+            `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${(0, html_js_1.escapeHtml)(channel?.title || 'Your Channel')}</b>\n` +
+            `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel?.channelId || 'N/A'}</code>\n` +
+            (normalLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> <code>${normalLink}</code>\n` : '') +
+            `• <b>sᴛᴀᴛᴜs:</b> ⏳ <b>ᴜɴᴅᴇʀ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ʀᴇᴠɪᴇᴡ</b>\n\n` +
+            `ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴀs ʙᴇᴇɴ sᴜʙᴍɪᴛᴛᴇᴅ ᴀɴᴅ ɪs ᴡᴀɪᴛɪɴɢ ғᴏʀ ᴀᴘᴘʀᴏᴠᴀʟ. ʏᴏᴜ ᴡɪʟʟ ʀᴇᴄᴇɪᴠᴇ ᴀ ɴᴏᴛɪғɪᴄᴀᴛɪᴏɴ ʜᴇʀᴇ ᴀs sᴏᴏɴ ᴀs ɪᴛ ɪs ᴀᴄᴄᴇᴘᴛᴇᴅ!`;
+        const kb = new grammy_1.InlineKeyboard();
+        if (normalLink) {
+            kb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalLink).primary().row();
+        }
+        kb.text('🗑️ ᴄᴀɴᴄᴇʟ ʀᴇǫᴜᴇsᴛ', `user_chan_del_confirm:${chanDbId}`)
+            .danger()
+            .row()
+            .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
+        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+        return;
+    }
+    // 9. Rejected channel info
+    if (data.startsWith('user_chan_rejected:')) {
+        await ctx.answerCallbackQuery();
+        const chanDbId = data.split(':')[1];
+        const channel = await Channel_js_1.Channel.findById(chanDbId);
+        const text = `❌ <b>ᴄʜᴀɴɴᴇʟ ʀᴇǫᴜᴇsᴛ ᴅᴇᴄʟɪɴᴇᴅ</b>\n\n` +
+            `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${(0, html_js_1.escapeHtml)(channel?.title || 'Your Channel')}</b>\n` +
+            `• <b>sᴛᴀᴛᴜs:</b> ❌ <b>ᴅᴇᴄʟɪɴᴇᴅ ʙʏ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ</b>\n\n` +
+            `ʏᴏᴜ ᴄᴀɴ ʀᴇᴍᴏᴠᴇ ᴛʜɪs ᴇɴᴛʀʏ ᴏʀ ᴄᴏɴᴛᴀᴄᴛ sᴜᴘᴘᴏʀᴛ ᴠɪᴀ /contact.`;
+        const kb = new grammy_1.InlineKeyboard()
+            .text('🗑️ ʀᴇᴍᴏᴠᴇ ᴇɴᴛʀʏ', `user_chan_del:${chanDbId}`)
+            .danger()
+            .row()
+            .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
+        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+        return;
+    }
+}
+/**
+ * Handles incoming messages when a user is in WAITING_USER_CHANNEL_INPUT state
+ */
+async function handleUserChannelInput(ctx) {
+    const from = ctx.from;
+    if (!from)
+        return false;
+    const session = await (0, Settings_js_1.getAdminSession)(from.id);
+    if (!session || session.state !== 'WAITING_USER_CHANNEL_INPUT') {
+        return false;
+    }
+    const promptMessageId = session.data?.promptMessageId;
+    const chatId = session.data?.chatId || ctx.chat?.id;
+    // Clean up user's typed message or forwarded post so chat remains clean
+    try {
+        await ctx.deleteMessage();
+    }
+    catch { }
+    const text = ctx.message?.text?.trim();
+    // Cancel action: restore view in the SAME message
+    if (text === '/cancel') {
+        await (0, Settings_js_1.clearAdminSession)(from.id);
+        const channels = await Channel_js_1.Channel.find({ addedByUserId: from.id }).sort({ createdAt: -1 });
+        if (channels.length === 0) {
+            const cancelText = `⚙️ <b>ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴅᴀsʜʙᴏᴀʀᴅ</b>\n\n` +
+                `ʏᴏᴜ ʜᴀᴠᴇ ɴᴏᴛ ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴀɴʏ ᴄʜᴀɴɴᴇʟs ʏᴇᴛ.\n\n` +
+                `• <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ ᴍᴇᴍʙᴇʀs:</b> ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ ᴀᴄᴄᴇᴘᴛ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs.\n` +
+                `• <b>sʜᴀʀᴇᴀʙʟᴇ ᴅᴇᴇᴘ-ʟɪɴᴋs:</b> ɢᴇᴛ ᴘʀᴇᴍɪᴜᴍ sʜᴏʀᴛ ʟɪɴᴋs ғᴏʀ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ.`;
+            const kb = new grammy_1.InlineKeyboard().text('➕ ᴀᴅᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ', 'user_chan_add').primary().row();
+            await (0, telegram_js_1.editOrReply)(ctx, chatId, promptMessageId, cancelText, { parse_mode: 'HTML', reply_markup: kb });
+            return true;
+        }
+        const { text: listText, keyboard: listKb } = renderUserChannelList(channels);
+        await (0, telegram_js_1.editOrReply)(ctx, chatId, promptMessageId, listText, { parse_mode: 'HTML', reply_markup: listKb });
+        return true;
+    }
+    let channelId;
+    // Option A: Forwarded channel post
+    const forwardOrigin = ctx.message?.forward_origin;
+    if (forwardOrigin && forwardOrigin.type === 'channel' && forwardOrigin.chat) {
+        channelId = forwardOrigin.chat.id;
+    }
+    // Option B: Numeric Channel ID (e.g. -1001234567890)
+    if (!channelId && text) {
+        const parsed = parseInt(text, 10);
+        if (!isNaN(parsed)) {
+            channelId = parsed;
+        }
+    }
+    // Option C: Channel Username (e.g. @MyChannel or https://t.me/MyChannel)
+    if (!channelId && text) {
+        const linkMatch = text.match(/(?:https?:\/\/)?(?:www\.)?t\.me\/([a-zA-Z0-9_]{4,})/);
+        const rawUsername = linkMatch ? linkMatch[1] : (text.startsWith('@') ? text.slice(1) : undefined);
+        if (rawUsername && !['joinchat', 'addstickers'].includes(rawUsername.toLowerCase())) {
+            try {
+                const chat = await ctx.api.getChat(`@${rawUsername}`);
+                channelId = chat.id;
+            }
+            catch {
+                // Handled below
+            }
+        }
+    }
+    if (!channelId) {
+        const retryText = `⚠️ <b>ɪɴᴠᴀʟɪᴅ ɪɴᴘᴜᴛ</b>\n\n` +
+            `ᴘʟᴇᴀsᴇ ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ ғʀᴏᴍ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ, sᴇɴᴅ ɪᴛs ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. <code>-1001234567890</code>), ᴏʀ sᴇɴᴅ ɪᴛs ʟɪɴᴋ (<code>t.me/yourchannel</code>).\n\n` +
+            `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`;
+        const cancelKb = new grammy_1.InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'user_chan_list');
+        await (0, telegram_js_1.editOrReply)(ctx, chatId, promptMessageId, retryText, { parse_mode: 'HTML', reply_markup: cancelKb });
+        return true;
+    }
+    const botUsername = ctx.me.username;
+    // Validate and submit channel for admin approval
+    const result = await channelService_js_1.ChannelService.submitUserChannel(ctx, channelId, {
+        id: from.id,
+        name: from.first_name,
+        username: from.username,
+    });
+    if (!result.success || !result.channel) {
+        const errorText = `❌ <b>ᴄᴏᴜʟᴅ ɴᴏᴛ ᴄᴏɴɴᴇᴄᴛ ᴄʜᴀɴɴᴇʟ</b>\n\n` +
+            `${(0, html_js_1.escapeHtml)(result.error || 'Verification failed')}\n\n` +
+            `💡 <b>ǫᴜɪᴄᴋ ᴄʜᴇᴄᴋʟɪsᴛ:</b>\n` +
+            `1. ᴀᴅᴅ @${botUsername} ᴛᴏ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴀs ᴀɴ <b>ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ</b>.\n` +
+            `2. ᴇɴsᴜʀᴇ <b>"ɪɴᴠɪᴛᴇ ᴜsᴇʀs ᴠɪᴀ ʟɪɴᴋ"</b> ɪs ᴇɴᴀʙʟᴇᴅ.\n` +
+            `3. ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ ᴏʀ sᴇɴᴅ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ɪᴅ ᴀɢᴀɪɴ.`;
+        const cancelKb = new grammy_1.InlineKeyboard().text('🔙 ᴄᴀɴᴄᴇʟ', 'user_chan_list');
+        await (0, telegram_js_1.editOrReply)(ctx, chatId, promptMessageId, errorText, { parse_mode: 'HTML', reply_markup: cancelKb });
+        return true;
+    }
+    await (0, Settings_js_1.clearAdminSession)(from.id);
+    // Edit in place to show success!
+    const normalChannelLink = result.channel.normalLink ||
+        (result.channel.username ? `https://t.me/${result.channel.username.replace(/^@/, '')}` : undefined);
+    const successText = `⏳ <b>ʀᴇǫᴜᴇsᴛ sᴜʙᴍɪᴛᴛᴇᴅ ғᴏʀ ʀᴇᴠɪᴇᴡ!</b>\n\n` +
+        `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${(0, html_js_1.escapeHtml)(result.channel.title)}</b>\n` +
+        `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${result.channel.channelId}</code>\n` +
+        (normalChannelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> <code>${normalChannelLink}</code>\n\n` : '\n') +
+        `ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴀs ʙᴇᴇɴ sᴜʙᴍɪᴛᴛᴇᴅ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n` +
+        `ʏᴏᴜ ᴡɪʟʟ ʀᴇᴄᴇɪᴠᴇ ᴀ ɴᴏᴛɪғɪᴄᴀᴛɪᴏɴ ʜᴇʀᴇ ᴀs sᴏᴏɴ ᴀs ɪᴛ ɪs ᴀᴄᴄᴇᴘᴛᴇᴅ.`;
+    const viewKb = new grammy_1.InlineKeyboard();
+    if (normalChannelLink) {
+        viewKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).primary().row();
+    }
+    viewKb.text('⚙️ ᴠɪᴇᴡ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list');
+    await (0, telegram_js_1.editOrReply)(ctx, chatId, promptMessageId, successText, { parse_mode: 'HTML', reply_markup: viewKb });
+    // Dispatch interactive approval card to admins and log channel
+    await sendChannelApprovalRequestToAdmins(ctx, result.channel);
+    return true;
+}
+/**
+ * Resolves a normal direct channel link (public username or creates_join_request: false).
+ * Ensures administrators and reviewers can inspect the channel directly without sending a join request.
+ */
+async function resolveNormalChannelLink(ctx, channel) {
+    if (channel.normalLink)
+        return channel.normalLink;
+    if (channel.username) {
+        const link = `https://t.me/${channel.username.replace(/^@/, '')}`;
+        channel.normalLink = link;
+        channel.save().catch(() => { });
+        return link;
+    }
+    try {
+        const link = await linkService_js_1.LinkService.getOrCreateNormalChannelLink(ctx, channel.channelId, channel.title, channel.username);
+        channel.normalLink = link;
+        channel.save().catch(() => { });
+        return link;
+    }
+    catch (err) {
+        console.warn(`[resolveNormalChannelLink] Could not create normal link for ${channel.channelId}:`, err);
+        return channel.inviteLink;
+    }
+}
+/**
+ * Sends an interactive approval notification to Admins and Log Channel
+ */
+async function sendChannelApprovalRequestToAdmins(ctx, channel) {
+    const from = ctx.from;
+    const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const normalChannelLink = await resolveNormalChannelLink(ctx, channel);
+    const adminText = `📢 <b>ɴᴇᴡ ᴄʜᴀɴɴᴇʟ ᴀᴘᴘʀᴏᴠᴀʟ ʀᴇǫᴜᴇsᴛ</b>\n\n` +
+        `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${(0, html_js_1.escapeHtml)(channel.title)}</b>\n` +
+        `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
+        `• <b>ᴜsᴇʀɴᴀᴍᴇ:</b> ${channel.username ? `@${channel.username.replace(/^@/, '')}` : '<i>ɴᴏɴᴇ</i>'}\n` +
+        (normalChannelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> ${normalChannelLink}\n` : '') +
+        `• <b>sᴜʙᴍɪᴛᴛᴇᴅ ʙʏ:</b> <a href="tg://user?id=${from.id}">${(0, html_js_1.escapeHtml)(from.first_name)}</a> (<code>${from.id}</code>)\n` +
+        `• <b>ᴜsᴇʀ ʜᴀɴᴅʟᴇ:</b> ${from.username ? `@${from.username}` : '<i>ɴᴏɴᴇ</i>'}\n` +
+        `• <b>ᴛɪᴍᴇ:</b> <code>${time} UTC</code>\n` +
+        `• <b>sᴛᴀᴛᴜs:</b> ⏳ <b>ᴘᴇɴᴅɪɴɢ ʀᴇᴠɪᴇᴡ</b>\n\n` +
+        `ᴘʟᴇᴀsᴇ ʀᴇᴠɪᴇᴡ ᴛʜɪs ʀᴇǫᴜᴇsᴛ ᴀɴᴅ ᴀᴄᴄᴇᴘᴛ ᴏʀ ʀᴇᴊᴇᴄᴛ:`;
+    const approvalKb = new grammy_1.InlineKeyboard();
+    if (normalChannelLink) {
+        approvalKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).primary().row();
+    }
+    approvalKb
+        .text('✅ ᴀᴄᴄᴇᴘᴛ', `admin_approve_chan:${channel._id}`)
+        .success()
+        .text('❌ ʀᴇᴊᴇᴄᴛ', `admin_reject_chan:${channel._id}`)
+        .danger();
+    const settings = await (0, Settings_js_1.getGlobalSettings)();
+    const allAdmins = Array.from(new Set([...config_js_1.config.adminIds, ...(settings.admins || [])]));
+    for (const adminId of allAdmins) {
+        try {
+            await ctx.api.sendMessage(adminId, adminText, {
+                parse_mode: 'HTML',
+                reply_markup: approvalKb,
+            });
+        }
+        catch (e) {
+            console.warn(`[Approval] Could not deliver to admin ${adminId}:`, e);
+        }
+    }
+    const logChannelId = await loggerService_js_1.LoggerService.getLogChannelId();
+    if (logChannelId) {
+        try {
+            await ctx.api.sendMessage(logChannelId, adminText, {
+                parse_mode: 'HTML',
+                reply_markup: approvalKb,
+            });
+        }
+        catch (e) {
+            console.warn('[Approval] Could not deliver to log channel:', e);
+        }
+    }
+}
+/**
+ * Handles Admin [✅ Accept] and [❌ Reject] buttons
+ */
+async function handleAdminApprovalCallback(ctx) {
+    const data = ctx.callbackQuery?.data;
+    const from = ctx.from;
+    if (!data || !from || !(await (0, admin_js_1.isAdmin)(from.id))) {
+        await ctx.answerCallbackQuery({ text: 'Access denied.' });
+        return;
+    }
+    const isApprove = data.startsWith('admin_approve_chan:');
+    const isReject = data.startsWith('admin_reject_chan:');
+    if (!isApprove && !isReject)
+        return;
+    const chanDbId = data.split(':')[1];
+    const channel = await Channel_js_1.Channel.findById(chanDbId);
+    if (!channel) {
+        await ctx.answerCallbackQuery({ text: 'Channel not found.' });
+        return;
+    }
+    if (channel.status !== 'pending') {
+        await ctx.answerCallbackQuery({
+            text: `This channel has already been ${channel.status}.`,
+        });
+        // Remove action buttons if already processed
+        try {
+            await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+        }
+        catch { }
+        return;
+    }
+    const botUsername = ctx.me.username;
+    if (isApprove) {
+        // 1. Generate direct Telegram join request invite link
+        let inviteLink = channel.inviteLink;
+        try {
+            inviteLink = await linkService_js_1.LinkService.getOrCreateChannelInviteLink(ctx, channel.channelId, channel.title);
+        }
+        catch (e) {
+            console.warn('[Approve] Could not create invite link:', e);
+        }
+        channel.status = 'approved';
+        channel.inviteLink = inviteLink;
+        if (!channel.startPayload) {
+            channel.startPayload = linkService_js_1.LinkService.generateStartPayload(8);
+        }
+        await channel.save();
+        await ctx.answerCallbackQuery({ text: 'Channel approved successfully!' });
+        // 2. Update Admin notification message: display approved banner and keep normal view channel button
+        const normalChannelLink = await resolveNormalChannelLink(ctx, channel);
+        const updatedAdminText = `📢 <b>ᴄʜᴀɴɴᴇʟ ᴀᴘᴘʀᴏᴠᴀʟ ʀᴇǫᴜᴇsᴛ</b>\n\n` +
+            `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${(0, html_js_1.escapeHtml)(channel.title)}</b>\n` +
+            `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
+            (normalChannelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> ${normalChannelLink}\n` : '') +
+            `• <b>sᴜʙᴍɪᴛᴛᴇᴅ ʙʏ:</b> <a href="tg://user?id=${channel.addedByUserId}">${(0, html_js_1.escapeHtml)(channel.addedByUserName || 'User')}</a> (<code>${channel.addedByUserId}</code>)\n` +
+            `• <b>sᴛᴀᴛᴜs:</b> ✅ <b>ᴀᴘᴘʀᴏᴠᴇᴅ ʙʏ ${(0, html_js_1.escapeHtml)(from.first_name)}</b>`;
+        const updatedAdminKb = new grammy_1.InlineKeyboard();
+        if (normalChannelLink) {
+            updatedAdminKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).primary();
+        }
+        try {
+            await ctx.editMessageText(updatedAdminText, {
+                parse_mode: 'HTML',
+                ...(normalChannelLink ? { reply_markup: updatedAdminKb } : {}),
+            });
+        }
+        catch { }
+        // 3. Notify Channel Owner with links and 1-tap copy buttons
+        if (channel.addedByUserId) {
+            const botDeepLink = linkService_js_1.LinkService.getBotDeepLink(botUsername, channel.startPayload);
+            const channelLinkToCopy = channel.inviteLink || normalChannelLink || '';
+            const ownerText = `🎉 <b>ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʜᴀs ʙᴇᴇɴ ᴀᴘᴘʀᴏᴠᴇᴅ!</b>\n\n` +
+                `<b>${(0, html_js_1.escapeHtml)(channel.title)}</b> ɪs ɴᴏᴡ ᴀᴄᴛɪᴠᴇ ᴀɴᴅ ʀᴇᴀᴅʏ ᴛᴏ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ ᴍᴇᴍʙᴇʀs!\n\n` +
+                `🔗 <b>ʏᴏᴜʀ ʙᴏᴛ ɪɴᴠɪᴛᴇ ʟɪɴᴋ:</b>\n` +
+                `<code>${botDeepLink}</code>\n\n` +
+                `📨 <b>ᴄʜᴀɴɴᴇʟ ɪɴᴠɪᴛᴇ ʟɪɴᴋ:</b>\n` +
+                `<code>${channelLinkToCopy}</code>\n\n` +
+                `ʏᴏᴜ ᴄᴀɴ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ, ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ, ᴏʀ ᴄʀᴇᴀᴛᴇ ɴᴇᴡ ʟɪɴᴋs ᴀɴʏᴛɪᴍᴇ ᴠɪᴀ /managechat.`;
+            const ownerKb = new grammy_1.InlineKeyboard()
+                .copyText('📋 ᴄᴏᴘʏ ʙᴏᴛ ʟɪɴᴋ', botDeepLink)
+                .row();
+            if (channelLinkToCopy) {
+                ownerKb.copyText('📨 ᴄᴏᴘʏ ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ', channelLinkToCopy).row();
+            }
+            ownerKb.text('⚙️ ᴍᴀɴᴀɢᴇ ᴄʜᴀɴɴᴇʟ', `user_chan_view:${channel._id}`).primary();
+            try {
+                await ctx.api.sendMessage(channel.addedByUserId, ownerText, {
+                    parse_mode: 'HTML',
+                    reply_markup: ownerKb,
+                });
+            }
+            catch (dmErr) {
+                console.warn(`[Approve] Could not DM channel owner ${channel.addedByUserId}:`, dmErr);
+            }
+        }
+        loggerService_js_1.LoggerService.logChannelAction(ctx, 'Channel Approved by Admin', { id: channel.channelId, title: channel.title }, from.id);
+    }
+    else {
+        // REJECT
+        channel.status = 'rejected';
+        await channel.save();
+        await ctx.answerCallbackQuery({ text: 'Channel rejected.' });
+        // Update Admin notification message
+        const normalChannelLink = await resolveNormalChannelLink(ctx, channel);
+        const updatedAdminText = `📢 <b>ᴄʜᴀɴɴᴇʟ ᴀᴘᴘʀᴏᴠᴀʟ ʀᴇǫᴜᴇsᴛ</b>\n\n` +
+            `• <b>ᴄʜᴀɴɴᴇʟ:</b> <b>${(0, html_js_1.escapeHtml)(channel.title)}</b>\n` +
+            `• <b>ᴄʜᴀɴɴᴇʟ ɪᴅ:</b> <code>${channel.channelId}</code>\n` +
+            (normalChannelLink ? `• <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ:</b> ${normalChannelLink}\n` : '') +
+            `• <b>sᴜʙᴍɪᴛᴛᴇᴅ ʙʏ:</b> <a href="tg://user?id=${channel.addedByUserId}">${(0, html_js_1.escapeHtml)(channel.addedByUserName || 'User')}</a> (<code>${channel.addedByUserId}</code>)\n` +
+            `• <b>sᴛᴀᴛᴜs:</b> ❌ <b>ʀᴇᴊᴇᴄᴛᴇᴅ ʙʏ ${(0, html_js_1.escapeHtml)(from.first_name)}</b>`;
+        const updatedAdminKb = new grammy_1.InlineKeyboard();
+        if (normalChannelLink) {
+            updatedAdminKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ', normalChannelLink).primary();
+        }
+        try {
+            await ctx.editMessageText(updatedAdminText, {
+                parse_mode: 'HTML',
+                ...(normalChannelLink ? { reply_markup: updatedAdminKb } : {}),
+            });
+        }
+        catch { }
+        // Notify Channel Owner
+        if (channel.addedByUserId) {
+            const ownerText = `⚠️ <b>ᴄʜᴀɴɴᴇʟ ʀᴇǫᴜᴇsᴛ ᴅᴇᴄʟɪɴᴇᴅ</b>\n\n` +
+                `ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴄᴏɴɴᴇᴄᴛ <b>${(0, html_js_1.escapeHtml)(channel.title)}</b> ᴡᴀs ᴅᴇᴄʟɪɴᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n\n` +
+                `ɪғ ʏᴏᴜ ʜᴀᴠᴇ ǫᴜᴇsᴛɪᴏɴs ᴏʀ ᴡᴏᴜʟᴅ ʟɪᴋᴇ ᴛᴏ ᴀᴘᴘᴇᴀʟ, ᴘʟᴇᴀsᴇ sᴇɴᴅ /contact.`;
+            try {
+                await ctx.api.sendMessage(channel.addedByUserId, ownerText, { parse_mode: 'HTML' });
+            }
+            catch (dmErr) {
+                console.warn(`[Reject] Could not DM channel owner ${channel.addedByUserId}:`, dmErr);
+            }
+        }
+        loggerService_js_1.LoggerService.logChannelAction(ctx, 'Channel Rejected by Admin', { id: channel.channelId, title: channel.title }, from.id);
+    }
+}
