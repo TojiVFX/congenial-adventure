@@ -221,7 +221,7 @@ export async function handleAdminDirectReply(ctx: Context): Promise<boolean> {
     if (replyText) {
       await ctx.api.sendMessage(
         targetUserId,
-        `👨‍💼 <b>sᴜᴘᴘᴏʀᴛ ʀᴇsᴘᴏɴsᴇ:</b>\n\n` +
+        `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ:</b>\n\n` +
         `${escapeHtml(replyText)}\n\n` +
         `<i>💬 ʏᴏᴜ ᴄᴀɴ ʀᴇᴘʟʏ ᴅɪʀᴇᴄᴛʟʏ ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ ᴛʜɪs ᴄʜᴀᴛ, ᴏʀ sᴇɴᴅ /cancel ᴛᴏ ᴇɴᴅ.</i>`,
         { parse_mode: 'HTML' }
@@ -229,7 +229,7 @@ export async function handleAdminDirectReply(ctx: Context): Promise<boolean> {
     } else {
       await ctx.api.sendMessage(
         targetUserId,
-        `👨‍💼 <b>sᴜᴘᴘᴏʀᴛ ʀᴇsᴘᴏɴsᴇ (ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ):</b>`,
+        `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ (ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ):</b>`,
         { parse_mode: 'HTML' }
       );
       await ctx.copyMessage(targetUserId);
@@ -363,7 +363,7 @@ export async function handleAdminContactReplyInput(ctx: Context): Promise<boolea
     if (text) {
       await ctx.api.sendMessage(
         targetUserId,
-        `👨‍💼 <b>sᴜᴘᴘᴏʀᴛ ʀᴇsᴘᴏɴsᴇ:</b>\n\n` +
+        `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ:</b>\n\n` +
         `${escapeHtml(text)}\n\n` +
         `<i>💬 ʏᴏᴜ ᴄᴀɴ ʀᴇᴘʟʏ ᴅɪʀᴇᴄᴛʟʏ ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ ᴛʜɪs ᴄʜᴀᴛ, ᴏʀ sᴇɴᴅ /cancel ᴛᴏ ᴇɴᴅ.</i>`,
         { parse_mode: 'HTML' }
@@ -371,7 +371,7 @@ export async function handleAdminContactReplyInput(ctx: Context): Promise<boolea
     } else {
       await ctx.api.sendMessage(
         targetUserId,
-        `👨‍💼 <b>sᴜᴘᴘᴏʀᴛ ʀᴇsᴘᴏɴsᴇ (ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ):</b>`,
+        `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ (ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ):</b>`,
         { parse_mode: 'HTML' }
       );
       await ctx.copyMessage(targetUserId);
@@ -432,7 +432,7 @@ export async function handleReplyCommand(ctx: Context): Promise<void> {
   try {
     await ctx.api.sendMessage(
       targetUserId,
-      `👨‍💼 <b>sᴜᴘᴘᴏʀᴛ ʀᴇsᴘᴏɴsᴇ:</b>\n\n` +
+      `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ:</b>\n\n` +
       `${escapeHtml(messageText)}\n\n` +
       `<i>💬 ʏᴏᴜ ᴄᴀɴ ʀᴇᴘʟʏ ᴅɪʀᴇᴄᴛʟʏ ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ ᴛʜɪs ᴄʜᴀᴛ, ᴏʀ sᴇɴᴅ /cancel ᴛᴏ ᴇɴᴅ.</i>`,
       { parse_mode: 'HTML' }

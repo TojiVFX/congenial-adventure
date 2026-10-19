@@ -182,12 +182,12 @@ async function handleAdminDirectReply(ctx) {
     const replyText = ctx.message?.text?.trim();
     try {
         if (replyText) {
-            await ctx.api.sendMessage(targetUserId, `👨‍💼 <b>sᴜᴘᴘᴏʀᴛ ʀᴇsᴘᴏɴsᴇ:</b>\n\n` +
+            await ctx.api.sendMessage(targetUserId, `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ:</b>\n\n` +
                 `${(0, html_js_1.escapeHtml)(replyText)}\n\n` +
                 `<i>💬 ʏᴏᴜ ᴄᴀɴ ʀᴇᴘʟʏ ᴅɪʀᴇᴄᴛʟʏ ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ ᴛʜɪs ᴄʜᴀᴛ, ᴏʀ sᴇɴᴅ /cancel ᴛᴏ ᴇɴᴅ.</i>`, { parse_mode: 'HTML' });
         }
         else {
-            await ctx.api.sendMessage(targetUserId, `👨‍💼 <b>sᴜᴘᴘᴏʀᴛ ʀᴇsᴘᴏɴsᴇ (ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ):</b>`, { parse_mode: 'HTML' });
+            await ctx.api.sendMessage(targetUserId, `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ (ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ):</b>`, { parse_mode: 'HTML' });
             await ctx.copyMessage(targetUserId);
         }
         // Keep user's contact session active so their next reply routes back to admin
@@ -292,12 +292,12 @@ async function handleAdminContactReplyInput(ctx) {
     await (0, Settings_js_1.clearAdminSession)(from.id);
     try {
         if (text) {
-            await ctx.api.sendMessage(targetUserId, `👨‍💼 <b>sᴜᴘᴘᴏʀᴛ ʀᴇsᴘᴏɴsᴇ:</b>\n\n` +
+            await ctx.api.sendMessage(targetUserId, `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ:</b>\n\n` +
                 `${(0, html_js_1.escapeHtml)(text)}\n\n` +
                 `<i>💬 ʏᴏᴜ ᴄᴀɴ ʀᴇᴘʟʏ ᴅɪʀᴇᴄᴛʟʏ ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ ᴛʜɪs ᴄʜᴀᴛ, ᴏʀ sᴇɴᴅ /cancel ᴛᴏ ᴇɴᴅ.</i>`, { parse_mode: 'HTML' });
         }
         else {
-            await ctx.api.sendMessage(targetUserId, `👨‍💼 <b>sᴜᴘᴘᴏʀᴛ ʀᴇsᴘᴏɴsᴇ (ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ):</b>`, { parse_mode: 'HTML' });
+            await ctx.api.sendMessage(targetUserId, `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ (ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ):</b>`, { parse_mode: 'HTML' });
             await ctx.copyMessage(targetUserId);
         }
         // Keep user session warm
@@ -339,7 +339,7 @@ async function handleReplyCommand(ctx) {
         return;
     }
     try {
-        await ctx.api.sendMessage(targetUserId, `👨‍💼 <b>sᴜᴘᴘᴏʀᴛ ʀᴇsᴘᴏɴsᴇ:</b>\n\n` +
+        await ctx.api.sendMessage(targetUserId, `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ:</b>\n\n` +
             `${(0, html_js_1.escapeHtml)(messageText)}\n\n` +
             `<i>💬 ʏᴏᴜ ᴄᴀɴ ʀᴇᴘʟʏ ᴅɪʀᴇᴄᴛʟʏ ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ ᴛʜɪs ᴄʜᴀᴛ, ᴏʀ sᴇɴᴅ /cancel ᴛᴏ ᴇɴᴅ.</i>`, { parse_mode: 'HTML' });
         await (0, Settings_js_1.setAdminSession)(targetUserId, 'WAITING_USER_CONTACT', {
