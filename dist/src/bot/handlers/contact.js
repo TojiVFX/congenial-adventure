@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.CONTACT_CATEGORIES = void 0;
 exports.handleContactCommand = handleContactCommand;
 exports.handleContactMessage = handleContactMessage;
 exports.handleAdminDirectReply = handleAdminDirectReply;
@@ -12,6 +13,60 @@ const Settings_js_1 = require("../../db/models/Settings.js");
 const loggerService_js_1 = require("../services/loggerService.js");
 const html_js_1 = require("../utils/html.js");
 const admin_js_1 = require("./admin.js");
+exports.CONTACT_CATEGORIES = {
+    channel: {
+        id: 'channel',
+        label: '📢 Channel Approval / Setup',
+        tag: '#CHANNEL_APPROVAL',
+        instructions: `📢 <b>ᴄʜᴀɴɴᴇʟ ᴀᴘᴘʀᴏᴠᴀʟ & sᴇᴛᴜᴘ</b>\n\n` +
+            `<b>ʙᴇғᴏʀᴇ sᴜʙᴍɪᴛᴛɪɴɢ, ᴘʟᴇᴀsᴇ ᴇɴsᴜʀᴇ:</b>\n` +
+            `1. ᴛʜᴇ ʙᴏᴛ ɪs ᴀᴅᴅᴇᴅ ᴛᴏ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ᴀs ᴀɴ <b>ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ</b> ᴡɪᴛʜ "ɪɴᴠɪᴛᴇ ᴜsᴇʀs ᴠɪᴀ ʟɪɴᴋ" ᴘᴇʀᴍɪssɪᴏɴ.\n` +
+            `2. sᴇɴᴅ ʏᴏᴜʀ <b>ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ, ᴜsᴇʀɴᴀᴍᴇ (@ᴄʜᴀɴɴᴇʟ), ᴏʀ ғᴏʀᴡᴀʀᴅ ᴀ ᴘᴏsᴛ</b> ғʀᴏᴍ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ʙᴇʟᴏᴡ.\n\n` +
+            `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`,
+    },
+    bug: {
+        id: 'bug',
+        label: '⚠️ Issue / Bug Report',
+        tag: '#BUG_REPORT',
+        instructions: `⚠️ <b>ɪssᴜᴇ / ʙᴜɢ ʀᴇᴘᴏʀᴛ</b>\n\n` +
+            `<b>ᴘʟᴇᴀsᴇ ᴅᴇsᴄʀɪʙᴇ ᴛʜᴇ ɪssᴜᴇ ɪɴ ᴅᴇᴛᴀɪʟ:</b>\n` +
+            `• ᴡʜᴀᴛ ᴡᴇʀᴇ ʏᴏᴜ ᴛʀʏɪɴɢ ᴛᴏ ᴅᴏ?\n` +
+            `• ᴡʜᴀᴛ ᴇʀʀᴏʀ ᴏʀ ᴜɴᴇxᴘᴇᴄᴛᴇᴅ ʙᴇʜᴀᴠɪᴏʀ ᴏᴄᴄᴜʀʀᴇᴅ?\n` +
+            `• ʏᴏᴜ ᴄᴀɴ ᴀʟsᴏ ᴀᴛᴛᴀᴄʜ sᴄʀᴇᴇɴsʜᴏᴛs ᴏʀ ᴠɪᴅᴇᴏ ᴄʟɪᴘs.\n\n` +
+            `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`,
+    },
+    partnership: {
+        id: 'partnership',
+        label: '💼 Partnership / Promotion',
+        tag: '#PARTNERSHIP',
+        instructions: `💼 <b>ᴘᴀʀᴛɴᴇʀsʜɪᴘ & ᴘʀᴏᴍᴏᴛɪᴏɴ</b>\n\n` +
+            `<b>ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴅᴇᴛᴀɪʟs ʀᴇɢᴀʀᴅɪɴɢ ʏᴏᴜʀ ᴘʀᴏᴘᴏsᴀʟ:</b>\n` +
+            `• ᴄʜᴀɴɴᴇʟ, ʙᴏᴛ, ᴏʀ ʙᴜsɪɴᴇss ʟɪɴᴋs\n` +
+            `• ᴅᴇsᴄʀɪᴘᴛɪᴏɴ ᴏғ ᴛʜᴇ ᴘʀᴏᴘᴏsᴇᴅ ᴄᴏʟʟᴀʙᴏʀᴀᴛɪᴏɴ ᴏʀ ᴘʀᴏᴍᴏᴛɪᴏɴ\n\n` +
+            `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`,
+    },
+    general: {
+        id: 'general',
+        label: '💬 General Inquiry',
+        tag: '#GENERAL_INQUIRY',
+        instructions: `💬 <b>ɢᴇɴᴇʀᴀʟ sᴜᴘᴘᴏʀᴛ</b>\n\n` +
+            `ᴘʟᴇᴀsᴇ ᴛʏᴘᴇ ʏᴏᴜʀ ǫᴜᴇsᴛɪᴏɴ ᴏʀ ᴍᴇssᴀɢᴇ ʙᴇʟᴏᴡ.\n` +
+            `ᴏᴜʀ ᴛᴇᴀᴍ ᴡɪʟʟ ʀᴇᴠɪᴇᴡ ɪᴛ ᴀɴᴅ ɢᴇᴛ ʙᴀᴄᴋ ᴛᴏ ʏᴏᴜ sʜᴏʀᴛʟʏ.\n\n` +
+            `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`,
+    },
+};
+function getCategoryKeyboard() {
+    return new grammy_1.InlineKeyboard()
+        .text('📢 ᴄʜᴀɴɴᴇʟ ᴀᴘᴘʀᴏᴠᴀʟ / sᴇᴛᴜᴘ', 'contact_cat:channel')
+        .row()
+        .text('⚠️ ɪssᴜᴇ / ʙᴜɢ ʀᴇᴘᴏʀᴛ', 'contact_cat:bug')
+        .row()
+        .text('💼 ᴘᴀʀᴛɴᴇʀsʜɪᴘ / ᴘʀᴏᴍᴏᴛɪᴏɴ', 'contact_cat:partnership')
+        .row()
+        .text('💬 ɢᴇɴᴇʀᴀʟ ɪɴǫᴜɪʀʏ', 'contact_cat:general')
+        .row()
+        .text('❌ ᴄᴀɴᴄᴇʟ', 'user_contact_end');
+}
 /**
  * Entry point for /contact, /support, /request
  */
@@ -29,45 +84,38 @@ async function handleContactCommand(ctx) {
         return;
     }
     const match = ctx.match;
-    // 2. User provided message directly with command: e.g. /contact I need help
-    if (match && match.trim().length > 0) {
-        await sendContactToAdmins(ctx, match.trim());
-        // Lock user until admin replies
-        await (0, Settings_js_1.setAdminSession)(from.id, 'WAITING_ADMIN_RESPONSE', {
+    const pendingText = match?.trim();
+    // 2. User typed text with command -> save text and ask for category first
+    if (pendingText && pendingText.length > 0) {
+        await (0, Settings_js_1.setAdminSession)(from.id, 'WAITING_USER_CATEGORY', {
+            pendingText,
             chatId: ctx.chat?.id,
         });
-        await ctx.reply(`💬 <b>sᴜᴘᴘᴏʀᴛ ʀᴇǫᴜᴇsᴛ sᴇɴᴛ!</b>\n\n` +
-            `ʏᴏᴜʀ ᴍᴇssᴀɢᴇ ʜᴀs ʙᴇᴇɴ ᴅᴇʟɪᴠᴇʀᴇᴅ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛɪᴏɴ ᴛᴇᴀᴍ.\n` +
-            `ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ ғᴏʀ ᴀɴ ᴀᴅᴍɪɴ ᴛᴏ ʀᴇᴘʟʏ — ʏᴏᴜ ᴡɪʟʟ ʙᴇ ᴀʙʟᴇ ᴛᴏ sᴇɴᴅ ᴀɴᴏᴛʜᴇʀ ᴍᴇssᴀɢᴇ ᴏɴᴄᴇ ᴛʜᴇʏ ʀᴇsᴘᴏɴᴅ.\n\n` +
-            `<i>sᴇɴᴅ /cancel ᴛᴏ ᴄᴀɴᴄᴇʟ ʏᴏᴜʀ ᴘᴇɴᴅɪɴɢ ʀᴇǫᴜᴇsᴛ.</i>`, { parse_mode: 'HTML' });
+        const categoryPrompt = `💬 <b>ʟɪᴠᴇ sᴜᴘᴘᴏʀᴛ | sᴇʟᴇᴄᴛ ᴄᴀᴛᴇɢᴏʀʏ</b>\n\n` +
+            `ᴘʟᴇᴀsᴇ sᴇʟᴇᴄᴛ ᴛʜᴇ <b>ᴄᴀᴛᴇɢᴏʀʏ</b> ᴛʜᴀᴛ ʙᴇsᴛ ᴅᴇsᴄʀɪʙᴇs ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ:\n\n` +
+            `<i>ʏᴏᴜʀ ᴍᴇssᴀɢᴇ ʜᴀs ʙᴇᴇɴ sᴀᴠᴇᴅ ᴀɴᴅ ᴡɪʟʟ ʙᴇ sᴇɴᴛ ɪᴍᴍᴇᴅɪᴀᴛᴇʟʏ ᴀғᴛᴇʀ ʏᴏᴜ ᴘɪᴄᴋ ᴀ ᴄᴀᴛᴇɢᴏʀʏ.</i>`;
+        await ctx.reply(categoryPrompt, {
+            parse_mode: 'HTML',
+            reply_markup: getCategoryKeyboard(),
+        });
         return;
     }
-    // 3. Prompt user to send their 1 message
-    const promptText = `💬 <b>ʟɪᴠᴇ sᴜᴘᴘᴏʀᴛ | ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴ</b>\n\n` +
-        `ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴄᴏɴɴᴇᴄᴛᴇᴅ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ sᴜᴘᴘᴏʀᴛ ᴄʜᴀᴛ!\n` +
-        `ᴘʟᴇᴀsᴇ sᴇɴᴅ ʏᴏᴜʀ <b>ᴍᴇssᴀɢᴇ, ᴄʜᴀɴɴᴇʟ ʟɪɴᴋ, ᴏʀ ᴍᴇᴅɪᴀ</b> (ᴘʜᴏᴛᴏs, ᴠᴏɪᴄᴇ ɴᴏᴛᴇs, ғᴏʀᴡᴀʀᴅs) ʙᴇʟᴏᴡ.\n\n` +
-        `<i>ᴛʏᴘᴇ /cancel ᴏʀ ᴛᴀᴘ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ᴇxɪᴛ ᴀᴛ ᴀɴʏ ᴛɪᴍᴇ.</i>`;
-    const cancelKb = new grammy_1.InlineKeyboard().text('❌ ᴇɴᴅ ᴄʜᴀᴛ', 'user_contact_end');
-    let promptMessageId;
-    if (ctx.callbackQuery) {
-        try {
-            await ctx.editMessageText(promptText, { parse_mode: 'HTML', reply_markup: cancelKb });
-            promptMessageId = ctx.callbackQuery.message?.message_id || 0;
-        }
-        catch {
-            const promptMsg = await ctx.reply(promptText, { parse_mode: 'HTML', reply_markup: cancelKb });
-            promptMessageId = promptMsg.message_id;
-        }
-    }
-    else {
-        const promptMsg = await ctx.reply(promptText, { parse_mode: 'HTML', reply_markup: cancelKb });
-        promptMessageId = promptMsg.message_id;
-    }
-    // Grant user 1 turn to send a message
-    await (0, Settings_js_1.setAdminSession)(from.id, 'WAITING_USER_CONTACT', {
-        promptMessageId,
+    // 3. Normal /contact without text -> show category picker
+    await (0, Settings_js_1.setAdminSession)(from.id, 'WAITING_USER_CATEGORY', {
         chatId: ctx.chat?.id,
     });
+    const promptText = `💬 <b>ʟɪᴠᴇ sᴜᴘᴘᴏʀᴛ | sᴇʟᴇᴄᴛ ᴄᴀᴛᴇɢᴏʀʏ</b>\n\n` +
+        `ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴏᴜʀ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ sᴜᴘᴘᴏʀᴛ ɢᴀᴛᴇᴡᴀʏ.\n` +
+        `ᴘʟᴇᴀsᴇ sᴇʟᴇᴄᴛ ᴛʜᴇ <b>ᴄᴀᴛᴇɢᴏʀʏ</b> ᴛʜᴀᴛ ʙᴇsᴛ ᴍᴀᴛᴄʜᴇs ʏᴏᴜʀ ɪɴǫᴜɪʀʏ:`;
+    const kb = getCategoryKeyboard();
+    if (ctx.callbackQuery) {
+        try {
+            await ctx.editMessageText(promptText, { parse_mode: 'HTML', reply_markup: kb });
+            return;
+        }
+        catch { }
+    }
+    await ctx.reply(promptText, { parse_mode: 'HTML', reply_markup: kb });
 }
 /**
  * Handles incoming messages from users in support sessions (enforces 1 message per admin reply)
@@ -119,13 +167,19 @@ async function handleContactMessage(ctx) {
             ? { id: forwardChat.chat.id, title: forwardChat.chat.title || 'Channel' }
             : undefined;
         const content = text || ctx.message?.caption || (forwardedChannel ? `Forwarded from channel: ${forwardedChannel.title}` : 'Media Attachment');
-        // Deliver to all admins
-        await sendContactToAdmins(ctx, content, forwardedChannel);
+        const catKey = session.data?.category || 'general';
+        const category = exports.CONTACT_CATEGORIES[catKey] || exports.CONTACT_CATEGORIES.general;
+        // Deliver to all admins with category badge
+        await sendContactToAdmins(ctx, content, forwardedChannel, category);
         // LOCK USER: Change state to WAITING_ADMIN_RESPONSE so they can't send another message until admin replies!
         await (0, Settings_js_1.setAdminSession)(from.id, 'WAITING_ADMIN_RESPONSE', {
             chatId: ctx.chat?.id,
+            category: category.id,
+            categoryLabel: category.label,
+            categoryTag: category.tag,
         });
         await ctx.reply(`📨 <b>ᴍᴇssᴀɢᴇ ᴅᴇʟɪᴠᴇʀᴇᴅ ᴛᴏ ᴀᴅᴍɪɴ!</b>\n\n` +
+            `• <b>ᴛᴏᴘɪᴄ:</b> ${category.label}\n\n` +
             `ʏᴏᴜʀ ᴍᴇssᴀɢᴇ ʜᴀs ʙᴇᴇɴ ʀᴇᴄᴇɪᴠᴇᴅ ʙʏ ᴏᴜʀ sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ.\n` +
             `ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ ғᴏʀ ᴀɴ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ᴛᴏ ʀᴇᴘʟʏ — ʏᴏᴜ ᴡɪʟʟ ʙᴇ ᴀʙʟᴇ ᴛᴏ sᴇɴᴅ ᴀɴᴏᴛʜᴇʀ ᴍᴇssᴀɢᴇ ᴏɴᴄᴇ ᴛʜᴇʏ ʀᴇsᴘᴏɴᴅ.\n\n` +
             `<i>sᴇɴᴅ /cancel ᴛᴏ ᴄᴀɴᴄᴇʟ ʏᴏᴜʀ ᴘᴇɴᴅɪɴɢ ʀᴇǫᴜᴇsᴛ.</i>`, { parse_mode: 'HTML' });
@@ -136,7 +190,7 @@ async function handleContactMessage(ctx) {
 /**
  * Sends a user's contact/support message to all configured Admins and the Log Channel
  */
-async function sendContactToAdmins(ctx, messageContent, forwardedChannel) {
+async function sendContactToAdmins(ctx, messageContent, forwardedChannel, category) {
     const from = ctx.from;
     const usernameDisplay = from.username ? `@${from.username}` : '<i>ɴᴏɴᴇ</i>';
     const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -144,7 +198,10 @@ async function sendContactToAdmins(ctx, messageContent, forwardedChannel) {
     if (forwardedChannel) {
         forwardInfo = `📢 <b>Forwarded Channel:</b> ${(0, html_js_1.escapeHtml)(forwardedChannel.title)} (<code>${forwardedChannel.id}</code>)\n`;
     }
+    const catLabel = category?.label || '💬 General Inquiry';
+    const catTag = category?.tag || '#GENERAL_INQUIRY';
     const adminText = `📬 <b>LIVE SUPPORT MESSAGE</b>  #UID:${from.id}\n` +
+        `🏷️ <b>Category:</b> <b>${(0, html_js_1.escapeHtml)(catLabel)}</b>  <code>${catTag}</code>\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
         `👤 <b>From:</b> <a href="tg://user?id=${from.id}">${(0, html_js_1.escapeHtml)(from.first_name)}</a> (${usernameDisplay})\n` +
         `🆔 <b>User ID:</b> <code>${from.id}</code>\n` +
@@ -218,6 +275,10 @@ async function handleAdminDirectReply(ctx) {
     if (isNaN(targetUserId))
         return false;
     const replyText = ctx.message?.text?.trim();
+    // Retrieve user session to maintain category context
+    const targetSession = await (0, Settings_js_1.getAdminSession)(targetUserId);
+    const catKey = targetSession?.data?.category || 'general';
+    const category = exports.CONTACT_CATEGORIES[catKey] || exports.CONTACT_CATEGORIES.general;
     try {
         if (replyText) {
             await ctx.api.sendMessage(targetUserId, `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ:</b>\n\n` +
@@ -228,9 +289,12 @@ async function handleAdminDirectReply(ctx) {
             await ctx.api.sendMessage(targetUserId, `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ (ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ):</b>`, { parse_mode: 'HTML' });
             await ctx.copyMessage(targetUserId);
         }
-        // UNLOCK USER FOR 1 TURN: set user back to WAITING_USER_CONTACT
+        // UNLOCK USER FOR 1 TURN while preserving category
         await (0, Settings_js_1.setAdminSession)(targetUserId, 'WAITING_USER_CONTACT', {
             chatId: targetUserId,
+            category: category.id,
+            categoryLabel: category.label,
+            categoryTag: category.tag,
         });
         await ctx.reply(`✅ <b>ʀᴇᴘʟʏ ᴅᴇʟɪᴠᴇʀᴇᴅ ᴛᴏ ᴜsᴇʀ</b> <code>${targetUserId}</code>`, {
             parse_mode: 'HTML',
@@ -244,7 +308,7 @@ async function handleAdminDirectReply(ctx) {
     }
 }
 /**
- * Handles button callbacks for contact chat (reply, close, user end)
+ * Handles button callbacks for contact chat (categories, reply, close, user end)
  */
 async function handleContactCallback(ctx) {
     const data = ctx.callbackQuery?.data;
@@ -262,7 +326,59 @@ async function handleContactCallback(ctx) {
         catch { }
         return;
     }
-    // 2. Admin initiates reply via button
+    // 2. User selects category
+    if (data.startsWith('contact_cat:')) {
+        const catKey = data.split(':')[1];
+        const category = exports.CONTACT_CATEGORIES[catKey] || exports.CONTACT_CATEGORIES.general;
+        const session = await (0, Settings_js_1.getAdminSession)(from.id);
+        const pendingText = session?.data?.pendingText;
+        // If user provided text with the command, dispatch immediately!
+        if (pendingText) {
+            await sendContactToAdmins(ctx, pendingText, undefined, category);
+            await (0, Settings_js_1.setAdminSession)(from.id, 'WAITING_ADMIN_RESPONSE', {
+                chatId: ctx.chat?.id,
+                category: category.id,
+                categoryLabel: category.label,
+                categoryTag: category.tag,
+            });
+            await ctx.answerCallbackQuery({ text: `Category: ${category.label}` });
+            const confirmText = `📨 <b>ᴍᴇssᴀɢᴇ ᴅᴇʟɪᴠᴇʀᴇᴅ ᴛᴏ ᴀᴅᴍɪɴ!</b>\n\n` +
+                `• <b>ᴛᴏᴘɪᴄ:</b> ${category.label}\n\n` +
+                `ʏᴏᴜʀ ᴍᴇssᴀɢᴇ ʜᴀs ʙᴇᴇɴ ʀᴇᴄᴇɪᴠᴇᴅ ʙʏ ᴏᴜʀ sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ.\n` +
+                `ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ ғᴏʀ ᴀɴ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ᴛᴏ ʀᴇᴘʟʏ — ʏᴏᴜ ᴡɪʟʟ ʙᴇ ᴀʙʟᴇ ᴛᴏ sᴇɴᴅ ᴀɴᴏᴛʜᴇʀ ᴍᴇssᴀɢᴇ ᴏɴᴄᴇ ᴛʜᴇʏ ʀᴇsᴘᴏɴᴅ.\n\n` +
+                `<i>sᴇɴᴅ /cancel ᴛᴏ ᴄᴀɴᴄᴇʟ ʏᴏᴜʀ ᴘᴇɴᴅɪɴɢ ʀᴇǫᴜᴇsᴛ.</i>`;
+            try {
+                await ctx.editMessageText(confirmText, { parse_mode: 'HTML' });
+            }
+            catch {
+                await ctx.reply(confirmText, { parse_mode: 'HTML' });
+            }
+            return;
+        }
+        // Otherwise show tailored instructions and grant 1 message turn
+        await (0, Settings_js_1.setAdminSession)(from.id, 'WAITING_USER_CONTACT', {
+            chatId: ctx.chat?.id,
+            category: category.id,
+            categoryLabel: category.label,
+            categoryTag: category.tag,
+        });
+        await ctx.answerCallbackQuery({ text: `Selected: ${category.label}` });
+        const cancelKb = new grammy_1.InlineKeyboard().text('❌ ᴇɴᴅ ᴄʜᴀᴛ', 'user_contact_end');
+        try {
+            await ctx.editMessageText(category.instructions, {
+                parse_mode: 'HTML',
+                reply_markup: cancelKb,
+            });
+        }
+        catch {
+            await ctx.reply(category.instructions, {
+                parse_mode: 'HTML',
+                reply_markup: cancelKb,
+            });
+        }
+        return;
+    }
+    // 3. Admin initiates reply via button
     if (data.startsWith('contact_reply:')) {
         if (!(await (0, admin_js_1.isAdmin)(from.id))) {
             await ctx.answerCallbackQuery({ text: 'Access denied.' });
@@ -280,7 +396,7 @@ async function handleContactCallback(ctx) {
             `<i>sᴇɴᴅ /cancel ᴛᴏ ᴀʙᴏʀᴛ.</i>`, { parse_mode: 'HTML' });
         return;
     }
-    // 3. Admin ends/closes contact session
+    // 4. Admin ends/closes contact session
     if (data.startsWith('contact_close:')) {
         if (!(await (0, admin_js_1.isAdmin)(from.id))) {
             await ctx.answerCallbackQuery({ text: 'Access denied.' });
@@ -329,6 +445,10 @@ async function handleAdminContactReplyInput(ctx) {
         return false;
     }
     await (0, Settings_js_1.clearAdminSession)(from.id);
+    // Retrieve user category to keep context
+    const targetSession = await (0, Settings_js_1.getAdminSession)(targetUserId);
+    const catKey = targetSession?.data?.category || 'general';
+    const category = exports.CONTACT_CATEGORIES[catKey] || exports.CONTACT_CATEGORIES.general;
     try {
         if (text) {
             await ctx.api.sendMessage(targetUserId, `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ:</b>\n\n` +
@@ -339,9 +459,12 @@ async function handleAdminContactReplyInput(ctx) {
             await ctx.api.sendMessage(targetUserId, `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ (ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ):</b>`, { parse_mode: 'HTML' });
             await ctx.copyMessage(targetUserId);
         }
-        // UNLOCK USER FOR 1 TURN
+        // UNLOCK USER FOR 1 TURN while preserving category
         await (0, Settings_js_1.setAdminSession)(targetUserId, 'WAITING_USER_CONTACT', {
             chatId: targetUserId,
+            category: category.id,
+            categoryLabel: category.label,
+            categoryTag: category.tag,
         });
         await ctx.reply(`✅ <b>ʀᴇᴘʟʏ sᴜᴄᴄᴇssғᴜʟʟʏ ᴅᴇʟɪᴠᴇʀᴇᴅ ᴛᴏ ᴜsᴇʀ</b> <code>${targetUserId}</code>`, {
             parse_mode: 'HTML',
@@ -377,13 +500,19 @@ async function handleReplyCommand(ctx) {
             `ᴜsᴀɢᴇ: <code>/reply &lt;user_id&gt; &lt;your message&gt;</code>`, { parse_mode: 'HTML' });
         return;
     }
+    const targetSession = await (0, Settings_js_1.getAdminSession)(targetUserId);
+    const catKey = targetSession?.data?.category || 'general';
+    const category = exports.CONTACT_CATEGORIES[catKey] || exports.CONTACT_CATEGORIES.general;
     try {
         await ctx.api.sendMessage(targetUserId, `💬 <b>sᴜᴘᴘᴏʀᴛ ᴛᴇᴀᴍ:</b>\n\n` +
             `${(0, html_js_1.escapeHtml)(messageText)}\n\n` +
             `<i>💬 ʏᴏᴜ ᴄᴀɴ ɴᴏᴡ sᴇɴᴅ ᴏɴᴇ ʀᴇᴘʟʏ ʙᴇʟᴏᴡ, ᴏʀ sᴇɴᴅ /cancel ᴛᴏ ᴇɴᴅ.</i>`, { parse_mode: 'HTML' });
-        // UNLOCK USER FOR 1 TURN
+        // UNLOCK USER FOR 1 TURN while preserving category
         await (0, Settings_js_1.setAdminSession)(targetUserId, 'WAITING_USER_CONTACT', {
             chatId: targetUserId,
+            category: category.id,
+            categoryLabel: category.label,
+            categoryTag: category.tag,
         });
         await ctx.reply(`✅ <b>ʀᴇᴘʟʏ ᴅᴇʟɪᴠᴇʀᴇᴅ ᴛᴏ ᴜsᴇʀ</b> <code>${targetUserId}</code>`, { parse_mode: 'HTML' });
     }
