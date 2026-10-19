@@ -33,11 +33,11 @@ validateConfig();
 
 export const bot = new Bot(config.botToken);
 
-// 1. Auto-Retry Telegram Rate Limits (429) with 5s ceiling for serverless safety
+// 1. Auto-Retry Telegram Rate Limits (429) - adjusted for 24/7 VPS hosting
 bot.api.config.use(
   autoRetry({
-    maxDelaySeconds: 5,
-    maxRetryAttempts: 2,
+    maxDelaySeconds: 60,
+    maxRetryAttempts: 3,
   })
 );
 

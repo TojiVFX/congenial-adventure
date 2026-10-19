@@ -26,9 +26,10 @@ async function connectDB() {
     if (!cached.promise) {
         const opts = {
             bufferCommands: false,
-            maxPoolSize: 5,
+            maxPoolSize: 10,
+            minPoolSize: 2,
             serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 15000,
+            socketTimeoutMS: 20000,
         };
         cached.promise = mongoose_1.default.connect(config_js_1.config.mongodbUri, opts).then(mongooseInstance => {
             console.log('[DB] Connected to MongoDB Atlas');

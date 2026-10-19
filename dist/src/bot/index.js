@@ -19,10 +19,10 @@ const errors_js_1 = require("./utils/errors.js");
 const SystemError_js_1 = require("../db/models/SystemError.js");
 (0, config_js_1.validateConfig)();
 exports.bot = new grammy_1.Bot(config_js_1.config.botToken);
-// 1. Auto-Retry Telegram Rate Limits (429) with 5s ceiling for serverless safety
+// 1. Auto-Retry Telegram Rate Limits (429) - adjusted for 24/7 VPS hosting
 exports.bot.api.config.use((0, auto_retry_1.autoRetry)({
-    maxDelaySeconds: 5,
-    maxRetryAttempts: 2,
+    maxDelaySeconds: 60,
+    maxRetryAttempts: 3,
 }));
 // 2. Ignore "query is too old" errors from answerCallbackQuery
 exports.bot.api.config.use(async (prev, method, payload, signal) => {
