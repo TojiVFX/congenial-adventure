@@ -48,7 +48,8 @@ exports.bot.use(async (ctx, next) => {
 // Commands
 exports.bot.command('start', start_js_1.handleStart);
 exports.bot.command('help', start_js_1.handleHelp);
-exports.bot.command(['contact', 'request'], contact_js_1.handleContactCommand);
+exports.bot.command(['contact', 'request', 'support'], contact_js_1.handleContactCommand);
+exports.bot.command('reply', contact_js_1.handleReplyCommand);
 exports.bot.command(['dashboard', 'admin', 'panel'], admin_js_1.handleAdminCommand);
 exports.bot.command(['status', 'systemstatus', 'health'], status_js_1.handleStatusCommand);
 exports.bot.command(['managechat', 'manage', 'mychannels', 'addchannel'], userChannel_js_1.handleManageChatCommand);
@@ -58,6 +59,10 @@ exports.bot.on('chat_join_request', joinRequest_js_1.handleChatJoinRequest);
 // Callback Queries
 exports.bot.on('callback_query:data', async (ctx, next) => {
     const data = ctx.callbackQuery.data;
+    if (data.startsWith('contact_') || data === 'user_contact_end') {
+        await (0, contact_js_1.handleContactCallback)(ctx);
+        return;
+    }
     if (data.startsWith('user_chan_')) {
         await (0, userChannel_js_1.handleUserChannelCallback)(ctx);
         return;
@@ -80,14 +85,25 @@ exports.bot.on('callback_query:data', async (ctx, next) => {
     }
     await (0, admin_js_1.handleAdminCallback)(ctx);
 });
-// Text & Forward Input Listener (Admin Sessions, User Channel Inputs & Contact Submissions)
+// Text & Forward Input Listener (Support Relay, Admin Sessions, Channel Inputs)
 exports.bot.on('message', async (ctx, next) => {
+    // 1. Telegram Native Swipe/Reply by Admin to user support cards
+    const handledDirectReply = await (0, contact_js_1.handleAdminDirectReply)(ctx);
+    if (handledDirectReply)
+        return;
+    // 2. Admin input when replying via [Reply] inline button
+    const handledAdminContactReply = await (0, contact_js_1.handleAdminContactReplyInput)(ctx);
+    if (handledAdminContactReply)
+        return;
+    // 3. Admin Dashboard sessions (channels, broadcast, settings)
     const handledAdmin = await (0, admin_js_1.handleAdminInput)(ctx);
     if (handledAdmin)
         return;
+    // 4. User Channel Submission session
     const handledUserChannel = await (0, userChannel_js_1.handleUserChannelInput)(ctx);
     if (handledUserChannel)
         return;
+    // 5. User Support / Live Chat session
     const handledContact = await (0, contact_js_1.handleContactMessage)(ctx);
     if (handledContact)
         return;

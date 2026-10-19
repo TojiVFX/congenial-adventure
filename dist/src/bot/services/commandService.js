@@ -19,6 +19,7 @@ exports.ADMIN_COMMANDS = [
     { command: 'status', description: 'sʏsᴛᴇᴍ sᴛᴀᴛᴜs & ᴇʀʀᴏʀ ʟᴏɢs' },
     { command: 'managechat', description: 'ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs & ʟɪɴᴋs' },
     { command: 'acceptall', description: 'ᴀᴄᴄᴇᴘᴛ ᴀʟʟ ᴘᴇɴᴅɪɴɢ ʀᴇǫᴜᴇsᴛs' },
+    { command: 'reply', description: 'ʀᴇᴘʟʏ ᴛᴏ ᴜsᴇʀ: /reply <id> <msg>' },
     { command: 'help', description: 'ɢᴜɪᴅᴇ & ɪɴsᴛʀᴜᴄᴛɪᴏɴs' },
     { command: 'contact', description: 'ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ' },
 ];
