@@ -56,6 +56,8 @@ exports.bot.command(['managechat', 'manage', 'mychannels', 'addchannel'], userCh
 exports.bot.command(['acceptall', 'accepall'], acceptAll_js_1.handleAcceptAllCommand);
 // Join Requests: Auto-Approval & Logging
 exports.bot.on('chat_join_request', joinRequest_js_1.handleChatJoinRequest);
+// Bot Added to / Removed from Chat Updates
+exports.bot.on('my_chat_member', userChannel_js_1.handleMyChatMember);
 // Callback Queries
 exports.bot.on('callback_query:data', async (ctx, next) => {
     const data = ctx.callbackQuery.data;

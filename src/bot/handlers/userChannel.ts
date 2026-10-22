@@ -194,7 +194,7 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
   if (data === 'user_chan_menu') {
     await ctx.answerCallbackQuery();
     await clearAdminSession(from.id);
-    const { text, keyboard } = renderStartMenu(from.first_name, false);
+    const { text, keyboard } = renderStartMenu(from.first_name, false, botUsername);
     await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: keyboard });
     return;
   }
@@ -267,6 +267,71 @@ export async function handleUserChannelCallback(ctx: Context): Promise<void> {
       .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ', 'user_chan_menu');
 
     await ctx.editMessageText(aboutText, { parse_mode: 'HTML', reply_markup: aboutKb });
+    return;
+  }
+
+  // 1f. Quick 1-click submission from bot addition DM prompt
+  if (data.startsWith('user_chan_quick_sub:')) {
+    const chanIdStr = data.split(':')[1];
+    const channelId = parseInt(chanIdStr, 10);
+    if (isNaN(channelId)) {
+      await ctx.answerCallbackQuery({ text: 'Invalid chat ID.' });
+      return;
+    }
+
+    // Validate bot permissions in that chat
+    const validation = await ChannelService.validateBotPermissions(ctx, channelId);
+    if (!validation.valid || !validation.title) {
+      await ctx.answerCallbackQuery({
+        text: validation.error || 'Bot is not an admin or lacks "Invite Users via Link" permission. Please promote the bot first!',
+        show_alert: true,
+      });
+      return;
+    }
+
+    // Submit for admin review
+    const result = await ChannelService.submitUserChannel(ctx, channelId, {
+      id: from.id,
+      name: from.first_name,
+      username: from.username,
+    });
+
+    if (!result.success || !result.channel) {
+      await ctx.answerCallbackQuery({
+        text: result.error || 'Failed to submit chat.',
+        show_alert: true,
+      });
+      return;
+    }
+
+    await ctx.answerCallbackQuery({ text: '✅ Request submitted to admin!' });
+
+    const normalLink =
+      result.channel.normalLink ||
+      (result.channel.username ? `https://t.me/${result.channel.username.replace(/^@/, '')}` : undefined);
+
+    const successText =
+      `⏳ <b>ʀᴇǫᴜᴇsᴛ sᴜʙᴍɪᴛᴛᴇᴅ ғᴏʀ ʀᴇᴠɪᴇᴡ!</b>\n\n` +
+      `• <b>ᴄʜᴀᴛ:</b> <b>${escapeHtml(result.channel.title)}</b>\n` +
+      `• <b>ᴄʜᴀᴛ ɪᴅ:</b> <code>${result.channel.channelId}</code>\n` +
+      (normalLink ? `• <b>ᴄʜᴀᴛ ʟɪɴᴋ:</b> <code>${normalLink}</code>\n\n` : '\n') +
+      `ʏᴏᴜʀ ᴄʜᴀᴛ ʜᴀs ʙᴇᴇɴ sᴜʙᴍɪᴛᴛᴇᴅ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ.\n` +
+      `ʏᴏᴜ ᴡɪʟʟ ʀᴇᴄᴇɪᴠᴇ ᴀ ɴᴏᴛɪғɪᴄᴀᴛɪᴏɴ ʜᴇʀᴇ ᴀs sᴏᴏɴ ᴀs ɪᴛ ɪs ᴀᴄᴄᴇᴘᴛᴇᴅ.`;
+
+    const viewKb = new InlineKeyboard();
+    if (normalLink) {
+      viewKb.url('📢 ᴠɪᴇᴡ ᴄʜᴀᴛ', normalLink).primary().row();
+    }
+    viewKb.text('⚙️ ᴠɪᴇᴡ ᴍʏ ᴄʜᴀᴛs', 'user_chan_list');
+
+    try {
+      await ctx.editMessageText(successText, { parse_mode: 'HTML', reply_markup: viewKb });
+    } catch {
+      await ctx.reply(successText, { parse_mode: 'HTML', reply_markup: viewKb });
+    }
+
+    // Dispatch interactive approval card to admins and log channel
+    await sendChannelApprovalRequestToAdmins(ctx, result.channel);
     return;
   }
 
@@ -877,5 +942,102 @@ export async function handleAdminApprovalCallback(ctx: Context): Promise<void> {
       { id: channel.channelId, title: channel.title },
       from.id
     );
+  }
+}
+
+
+/**
+ * Handles bot additions/promotions/removals in channels and groups
+ */
+export async function handleMyChatMember(ctx: Context): Promise<void> {
+  const update = ctx.myChatMember;
+  if (!update) return;
+
+  const chat = update.chat;
+  const from = update.from;
+  const newMember = update.new_chat_member;
+  const oldStatus = update.old_chat_member?.status;
+  const newStatus = newMember.status;
+
+  // Only handle channels, groups, and supergroups
+  if (chat.type !== 'channel' && chat.type !== 'group' && chat.type !== 'supergroup') {
+    return;
+  }
+
+  // Case 1: Bot was removed / kicked
+  if (newStatus === 'left' || newStatus === 'kicked') {
+    try {
+      const channel = await Channel.findOne({ channelId: chat.id });
+      if (channel) {
+        channel.autoApproveEnabled = false;
+        await channel.save();
+        ChannelService.invalidateChannelCache(chat.id);
+
+        if (channel.addedByUserId) {
+          await ctx.api.sendMessage(
+            channel.addedByUserId,
+            `⚠️ <b>ʙᴏᴛ ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ ᴄʜᴀᴛ</b>\n\n` +
+            `ᴛʜᴇ ʙᴏᴛ ᴡᴀs ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ <b>${escapeHtml(chat.title || channel.title)}</b>.\n` +
+            `ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ʜᴀs ʙᴇᴇɴ ᴘᴀᴜsᴇᴅ ғᴏʀ ᴛʜɪs ᴄʜᴀᴛ.\n\n` +
+            `<i>ʏᴏᴜ ᴄᴀɴ ʀᴇ-ᴀᴅᴅ ᴛʜᴇ ʙᴏᴛ ᴏʀ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀᴛs ᴀɴʏᴛɪᴍᴇ ᴠɪᴀ /managechat.</i>`,
+            { parse_mode: 'HTML' }
+          );
+        }
+      }
+    } catch (err) {
+      console.warn('[handleMyChatMember] Error handling bot removal:', err);
+    }
+    return;
+  }
+
+  // Case 2: Bot was added or promoted to Admin
+  if (newStatus === 'administrator' || newStatus === 'member') {
+    const wasAlreadyAdmin = oldStatus === 'administrator';
+    const isNowAdmin = newStatus === 'administrator';
+    const hasInviteRights = isNowAdmin && Boolean((newMember as any).can_invite_users);
+
+    // If bot was already admin and nothing changed, ignore
+    if (wasAlreadyAdmin && isNowAdmin) {
+      return;
+    }
+
+    // Check if the chat is already registered and approved
+    const existingChannel = await Channel.findOne({ channelId: chat.id });
+    if (existingChannel && existingChannel.status === 'approved') {
+      return;
+    }
+
+    const chatTitle = chat.title || 'Your Chat';
+    const chatTypeLabel = chat.type === 'channel' ? 'ᴄʜᴀɴɴᴇʟ' : 'ɢʀᴏᴜᴘ';
+
+    let notifyText: string;
+    if (isNowAdmin && hasInviteRights) {
+      notifyText =
+        `🎉 <b>ʙᴏᴛ ᴀᴅᴅᴇᴅ ᴛᴏ ${chatTypeLabel}!</b>\n\n` +
+        `ʏᴏᴜ ᴀᴅᴅᴇᴅ ᴍᴇ ᴛᴏ <b>${escapeHtml(chatTitle)}</b> ᴡɪᴛʜ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ʀɪɢʜᴛs.\n\n` +
+        `⚡ <b>ᴏɴᴇ-ᴛᴀᴘ ᴀᴄᴛɪᴠᴀᴛɪᴏɴ:</b>\n` +
+        `ᴛᴀᴘ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ sᴜʙᴍɪᴛ ʏᴏᴜʀ ${chatTypeLabel.toLowerCase()} ᴅɪʀᴇᴄᴛʟʏ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ ғᴏʀ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ᴀᴄᴛɪᴠᴀᴛɪᴏɴ!`;
+    } else {
+      notifyText =
+        `⚠️ <b>ʙᴏᴛ ᴀᴅᴅᴇᴅ ᴛᴏ ${chatTypeLabel} | ᴀᴄᴛɪᴏɴ ɴᴇᴇᴅᴇᴅ</b>\n\n` +
+        `ʏᴏᴜ ᴀᴅᴅᴇᴅ ᴍᴇ ᴛᴏ <b>${escapeHtml(chatTitle)}</b>.\n\n` +
+        `ᴛᴏ ᴇɴᴀʙʟᴇ ɪɴsᴛᴀɴᴛ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ, ᴘʟᴇᴀsᴇ ᴍᴀᴋᴇ sᴜʀᴇ ᴛʜᴇ ʙᴏᴛ ɪs ᴘʀᴏᴍᴏᴛᴇᴅ ᴛᴏ <b>ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀ</b> ᴡɪᴛʜ <b>"ɪɴᴠɪᴛᴇ ᴜsᴇʀs ᴠɪᴀ ʟɪɴᴋ"</b> ᴇɴᴀʙʟᴇᴅ.\n\n` +
+        `ᴏɴᴄᴇ ᴘʀᴏᴍᴏᴛᴇᴅ, ᴛᴀᴘ <b>🚀 sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ</b> ʙᴇʟᴏᴡ ᴛᴏ sᴇɴᴅ ɪᴛ ᴅɪʀᴇᴄᴛʟʏ ᴛᴏ ᴛʜᴇ ᴀᴅᴍɪɴ!`;
+    }
+
+    const kb = new InlineKeyboard()
+      .text('🚀 sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', `user_chan_quick_sub:${chat.id}`)
+      .primary()
+      .row()
+      .text('⚙️ ᴍʏ ᴄʜᴀᴛs', 'user_chan_list');
+
+    try {
+      await ctx.api.sendMessage(from.id, notifyText, {
+        parse_mode: 'HTML',
+        reply_markup: kb,
+      });
+    } catch (dmErr) {
+      console.warn(`[handleMyChatMember] Could not DM user ${from.id}:`, dmErr);
+    }
   }
 }

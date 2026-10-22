@@ -68,8 +68,8 @@ export class ChannelService {
       const chat = await api.getChat(channelId);
 
       // Verify that it's a channel or supergroup
-      if (chat.type !== 'channel' && chat.type !== 'supergroup') {
-        return { valid: false, error: 'Target must be a Telegram Channel or Supergroup.' };
+      if (chat.type !== 'channel' && chat.type !== 'supergroup' && chat.type !== 'group') {
+        return { valid: false, error: 'Target must be a Telegram Channel or Group.' };
       }
 
       const me = await api.getMe();

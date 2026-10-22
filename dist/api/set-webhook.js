@@ -27,7 +27,7 @@ async function default_1(req, res) {
         // Register webhook with Telegram
         await index_js_1.bot.api.setWebhook(webhookUrl, {
             secret_token: config_js_1.config.webhookSecret || undefined,
-            allowed_updates: ['message', 'chat_join_request', 'callback_query'],
+            allowed_updates: ['message', 'chat_join_request', 'callback_query', 'my_chat_member'],
             drop_pending_updates: false,
         });
         // Auto-update Telegram Bot Command list menu

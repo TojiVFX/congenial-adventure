@@ -22,6 +22,7 @@ import {
   handleUserChannelCallback,
   handleUserChannelInput,
   handleAdminApprovalCallback,
+  handleMyChatMember,
 } from './handlers/userChannel.js';
 import { handleAcceptAllCommand, handleAcceptAllCallback } from './handlers/acceptAll.js';
 import {
@@ -84,6 +85,9 @@ bot.command(['acceptall', 'accepall'], handleAcceptAllCommand);
 
 // Join Requests: Auto-Approval & Logging
 bot.on('chat_join_request', handleChatJoinRequest);
+
+// Bot Added to / Removed from Chat Updates
+bot.on('my_chat_member', handleMyChatMember);
 
 // Callback Queries
 bot.on('callback_query:data', async (ctx, next) => {

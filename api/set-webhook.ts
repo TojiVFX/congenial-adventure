@@ -33,7 +33,7 @@ export default async function (req: IncomingMessage, res: ServerResponse) {
     // Register webhook with Telegram
     await bot.api.setWebhook(webhookUrl, {
       secret_token: config.webhookSecret || undefined,
-      allowed_updates: ['message', 'chat_join_request', 'callback_query'],
+      allowed_updates: ['message', 'chat_join_request', 'callback_query', 'my_chat_member'],
       drop_pending_updates: false,
     });
 

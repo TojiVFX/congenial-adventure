@@ -62,7 +62,7 @@ async function handleStart(ctx) {
     }
     // 3. If no payload, send appropriate bot greeting with instant action buttons
     if (!cleanPayload) {
-        const { text, keyboard } = renderStartMenu(from.first_name, isNewUser);
+        const { text, keyboard } = renderStartMenu(from.first_name, isNewUser, ctx.me.username);
         await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
         return;
     }
@@ -114,9 +114,9 @@ async function handleStart(ctx) {
     });
 }
 /**
- * Renders the primary Start menu with instant submission, Profile, and About buttons
+ * Renders the primary Start menu with Add to Channel / Add to Group, My Chats, Profile, and About buttons
  */
-function renderStartMenu(firstName, isNewUser = false) {
+function renderStartMenu(firstName, isNewUser = false, botUsername) {
     const greetingHeader = isNewUser
         ? `👋 <b>ᴡᴇʟᴄᴏᴍᴇ, ${(0, html_js_1.escapeHtml)(firstName)}!</b>`
         : `👋 <b>ᴡᴇʟᴄᴏᴍᴇ ʙᴀᴄᴋ, ${(0, html_js_1.escapeHtml)(firstName)}!</b>`;
@@ -126,19 +126,24 @@ function renderStartMenu(firstName, isNewUser = false) {
     const text = `${greetingHeader}\n\n` +
         `⚡ <b>ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴀʟ ɢᴀᴛᴇᴡᴀʏ</b>\n` +
         `${subHeader}\n\n` +
-        `• <b>sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ:</b> ᴛᴀᴘ <b>➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ</b> ᴛᴏ ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟ ɪɴsᴛᴀɴᴛʟʏ.\n` +
-        `• <b>ᴍᴀɴᴀɢᴇ ᴄʜᴀɴɴᴇʟs:</b> ᴛᴀᴘ <b>⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs</b> ᴏʀ sᴇɴᴅ /managechat.\n` +
+        `• <b>ᴀᴅᴅ ʙᴏᴛ:</b> ᴛᴀᴘ <b>➕ ᴀᴅᴅ ᴛᴏ ᴄʜᴀɴɴᴇʟ</b> ᴏʀ <b>➕ ᴀᴅᴅ ᴛᴏ ɢʀᴏᴜᴘ</b> ᴛᴏ ᴄᴏɴɴᴇᴄᴛ ʏᴏᴜʀ ᴄʜᴀᴛ.\n` +
+        `• <b>ᴍᴀɴᴀɢᴇ ᴄʜᴀᴛs:</b> ᴛᴀᴘ <b>⚙️ ᴍʏ ᴄʜᴀᴛs</b> ᴏʀ sᴇɴᴅ /managechat.\n` +
         `• <b>ʏᴏᴜʀ ᴀᴄᴄᴏᴜɴᴛ:</b> ᴛᴀᴘ <b>👤 ᴍʏ ᴘʀᴏғɪʟᴇ</b> ᴛᴏ ᴠɪᴇᴡ ʏᴏᴜʀ sᴛᴀᴛs & ɪɴғᴏ.\n` +
-        `• <b>ɴᴇᴇᴅ ᴀssɪsᴛᴀɴᴄᴇ?</b> sᴇɴᴅ /contact ᴏʀ ᴛᴀᴘ <b>📩 ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴ</b>.`;
+        `• <b>ɴᴇᴇᴅ ᴀssɪsᴛᴀɴᴄᴇ?</b> sᴇɴᴅ /contact ᴀɴʏᴛɪᴍᴇ.`;
+    const channelAddUrl = botUsername
+        ? `https://t.me/${botUsername}?startchannel=botadmin&admin=invite_users+manage_chat`
+        : 'https://t.me';
+    const groupAddUrl = botUsername
+        ? `https://t.me/${botUsername}?startgroup=botadmin&admin=invite_users+manage_chat`
+        : 'https://t.me';
     const keyboard = new grammy_1.InlineKeyboard()
-        .text('➕ sᴜʙᴍɪᴛ ʀᴇǫᴜᴇsᴛ', 'user_chan_add')
-        .primary()
-        .text('⚙️ ᴍʏ ᴄʜᴀɴɴᴇʟs', 'user_chan_list')
+        .url('➕ ᴀᴅᴅ ᴛᴏ ᴄʜᴀɴɴᴇʟ', channelAddUrl)
+        .url('➕ ᴀᴅᴅ ᴛᴏ ɢʀᴏᴜᴘ', groupAddUrl)
         .row()
+        .text('⚙️ ᴍʏ ᴄʜᴀᴛs', 'user_chan_list')
         .text('👤 ᴍʏ ᴘʀᴏғɪʟᴇ', 'user_chan_profile')
-        .text('ℹ️ ᴀʙᴏᴜᴛ', 'user_chan_about')
         .row()
-        .text('📩 ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴ', 'user_chan_contact');
+        .text('ℹ️ ᴀʙᴏᴜᴛ', 'user_chan_about');
     return { text, keyboard };
 }
 async function handleHelp(ctx) {
