@@ -8,6 +8,8 @@ exports.getStatusKeyboard = getStatusKeyboard;
 exports.handleStatusCommand = handleStatusCommand;
 exports.handleStatusCallback = handleStatusCallback;
 exports.handleClearErrorsCallback = handleClearErrorsCallback;
+exports.handleCleanCommand = handleCleanCommand;
+exports.handleCleanupCallback = handleCleanupCallback;
 const grammy_1 = require("grammy");
 const mongoose_1 = __importDefault(require("mongoose"));
 const User_js_1 = require("../../db/models/User.js");
@@ -16,6 +18,7 @@ const RequestLog_js_1 = require("../../db/models/RequestLog.js");
 const InviteLink_js_1 = require("../../db/models/InviteLink.js");
 const SystemError_js_1 = require("../../db/models/SystemError.js");
 const admin_js_1 = require("./admin.js");
+const cleanupService_js_1 = require("../services/cleanupService.js");
 const html_js_1 = require("../utils/html.js");
 function formatUptime(seconds) {
     const d = Math.floor(seconds / (3600 * 24));
@@ -119,8 +122,9 @@ async function buildStatusText() {
 function getStatusKeyboard() {
     return new grammy_1.InlineKeyboard()
         .text('🔄 ʀᴇғʀᴇsʜ sᴛᴀᴛᴜs', 'admin_status_refresh')
-        .text('🧹 ᴄʟᴇᴀʀ ᴇʀʀᴏʀs', 'admin_clear_errors')
+        .text('🧹 ᴄʟᴇᴀɴ ʀᴀᴍ & ᴅɪsᴋ', 'admin_cleanup')
         .row()
+        .text('🗑️ ᴄʟᴇᴀʀ ᴇʀʀᴏʀs', 'admin_clear_errors')
         .text('🔙 ʙᴀᴄᴋ ᴛᴏ ᴅᴀsʜʙᴏᴀʀᴅ', 'admin_home');
 }
 /**
@@ -177,6 +181,71 @@ async function handleClearErrorsCallback(ctx) {
     }
     await SystemError_js_1.SystemError.deleteMany({});
     await ctx.answerCallbackQuery({ text: '🧹 Error logs cleared successfully!' });
+    const text = await buildStatusText();
+    try {
+        await ctx.editMessageText(text, {
+            parse_mode: 'HTML',
+            reply_markup: getStatusKeyboard(),
+        });
+    }
+    catch { }
+}
+/**
+ * /clean command entry point (Admin Only)
+ */
+async function handleCleanCommand(ctx) {
+    const from = ctx.from;
+    if (!from || !(await (0, admin_js_1.isAdmin)(from.id))) {
+        await ctx.reply('⛔ <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ</b>: This command is restricted to administrators.', {
+            parse_mode: 'HTML',
+        });
+        return;
+    }
+    const statusMsg = await ctx.reply('🧹 <i>Cleaning RAM and Disk storage...</i>', {
+        parse_mode: 'HTML',
+    });
+    const res = await cleanupService_js_1.CleanupService.performCleanup();
+    const diskFreedMb = (res.diskBytesCleaned / 1024 / 1024).toFixed(2);
+    const text = `🧹 <b>sʏsᴛᴇᴍ ᴄʟᴇᴀɴᴜᴘ ᴄᴏᴍᴘʟᴇᴛᴇ</b>\n\n` +
+        `⚡ <b>ʀᴀᴍ ᴏᴘᴛɪᴍɪᴢᴀᴛɪᴏɴ:</b>\n` +
+        `• <b>RAM Before:</b> <code>${res.ramBeforeMb.toFixed(1)} MB</code>\n` +
+        `• <b>RAM After:</b> <code>${res.ramAfterMb.toFixed(1)} MB</code>\n` +
+        `• <b>Freed Memory:</b> <code>${res.ramFreedMb.toFixed(1)} MB</code>\n\n` +
+        `🗄️ <b>ᴅɪsᴋ & ᴅᴀᴛᴀʙᴀsᴇ:</b>\n` +
+        `• <b>Old Join Logs Pruned (>30d):</b> <code>${res.dbLogsRemoved}</code>\n` +
+        `• <b>Expired Invite Links Pruned:</b> <code>${res.expiredLinksRemoved}</code>\n` +
+        `• <b>Stale Sessions Cleared:</b> <code>${res.sessionsRemoved}</code>\n` +
+        `• <b>Old Errors Cleared:</b> <code>${res.errorsRemoved}</code>\n` +
+        `• <b>Disk Log Space Freed:</b> <code>${diskFreedMb} MB</code>\n\n` +
+        `⏱️ <i>Completed in ${res.durationMs}ms</i>`;
+    try {
+        await ctx.api.editMessageText(statusMsg.chat.id, statusMsg.message_id, text, {
+            parse_mode: 'HTML',
+            reply_markup: new grammy_1.InlineKeyboard().text('🔄 ʀᴇғʀᴇsʜ sᴛᴀᴛᴜs', 'admin_status_refresh'),
+        });
+    }
+    catch {
+        await ctx.reply(text, { parse_mode: 'HTML' });
+    }
+}
+/**
+ * Handles 'admin_cleanup' callback query from the status dashboard
+ */
+async function handleCleanupCallback(ctx) {
+    const from = ctx.from;
+    if (!from || !(await (0, admin_js_1.isAdmin)(from.id))) {
+        await ctx.answerCallbackQuery({ text: 'Access denied.' });
+        return;
+    }
+    await ctx.answerCallbackQuery({ text: '🧹 Running cleanup...' });
+    const res = await cleanupService_js_1.CleanupService.performCleanup();
+    const alertText = `🧹 Cleaned in ${res.durationMs}ms!\n` +
+        `RAM: ${res.ramBeforeMb.toFixed(0)}MB -> ${res.ramAfterMb.toFixed(0)}MB (Freed ${res.ramFreedMb.toFixed(1)}MB)\n` +
+        `Pruned: ${res.dbLogsRemoved} logs, ${res.expiredLinksRemoved} links`;
+    try {
+        await ctx.answerCallbackQuery({ text: alertText, show_alert: true });
+    }
+    catch { }
     const text = await buildStatusText();
     try {
         await ctx.editMessageText(text, {

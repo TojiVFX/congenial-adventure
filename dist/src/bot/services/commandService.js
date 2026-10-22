@@ -17,6 +17,7 @@ exports.ADMIN_COMMANDS = [
     { command: 'start', description: 'sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ' },
     { command: 'dashboard', description: 'ᴀᴅᴍɪɴ ᴄᴏɴᴛʀᴏʟ ᴅᴀsʜʙᴏᴀʀᴅ' },
     { command: 'status', description: 'sʏsᴛᴇᴍ sᴛᴀᴛᴜs & ᴇʀʀᴏʀ ʟᴏɢs' },
+    { command: 'clean', description: 'ᴄʟᴇᴀɴ ʀᴀᴍ & ᴅɪsᴋ sᴛᴏʀᴀɢᴇ' },
     { command: 'managechat', description: 'ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs & ʟɪɴᴋs' },
     { command: 'acceptall', description: 'ᴀᴄᴄᴇᴘᴛ ᴀʟʟ ᴘᴇɴᴅɪɴɢ ʀᴇǫᴜᴇsᴛs' },
     { command: 'reply', description: 'ʀᴇᴘʟʏ ᴛᴏ ᴜsᴇʀ: /reply <id> <msg>' },

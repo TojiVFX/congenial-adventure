@@ -1,5 +1,11 @@
+import v8 from 'v8';
+try {
+  v8.setFlagsFromString('--expose-gc');
+} catch {}
+
 import { bot, updateBotCommands } from './bot/index.js';
 import { connectDB } from './db/connection.js';
+import { CleanupService } from './bot/services/cleanupService.js';
 
 // Process safety handlers to prevent unhandled network drops from crashing the server
 process.on('unhandledRejection', (reason) => {
@@ -23,12 +29,17 @@ async function startLocal() {
     // Auto-sync command list with Telegram
     await updateBotCommands(bot);
 
+    // Start background auto-cleaner (every 30 mins + RAM watchdog)
+    CleanupService.startAutoCleanup(30);
+    console.log('🧹 Background auto-cleaner active (Disk & RAM optimization).');
+
     const me = await bot.api.getMe();
     console.log(`🤖 Bot @${me.username} is running! Press Ctrl+C to stop.`);
 
     // Graceful shutdown handling
     const stopBot = async () => {
       console.log('🛑 Stopping bot gracefully...');
+      CleanupService.stopAutoCleanup();
       await bot.stop();
       process.exit(0);
     };

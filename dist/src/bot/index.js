@@ -52,6 +52,7 @@ exports.bot.command(['contact', 'request', 'support'], contact_js_1.handleContac
 exports.bot.command('reply', contact_js_1.handleReplyCommand);
 exports.bot.command(['dashboard', 'admin', 'panel'], admin_js_1.handleAdminCommand);
 exports.bot.command(['status', 'systemstatus', 'health'], status_js_1.handleStatusCommand);
+exports.bot.command(['clean', 'cleanup', 'purge'], status_js_1.handleCleanCommand);
 exports.bot.command(['managechat', 'manage', 'mychannels', 'addchannel'], userChannel_js_1.handleManageChatCommand);
 exports.bot.command(['acceptall', 'accepall'], acceptAll_js_1.handleAcceptAllCommand);
 // Join Requests: Auto-Approval & Logging
@@ -83,6 +84,10 @@ exports.bot.on('callback_query:data', async (ctx, next) => {
     }
     if (data === 'admin_clear_errors') {
         await (0, status_js_1.handleClearErrorsCallback)(ctx);
+        return;
+    }
+    if (data === 'admin_cleanup') {
+        await (0, status_js_1.handleCleanupCallback)(ctx);
         return;
     }
     await (0, admin_js_1.handleAdminCallback)(ctx);

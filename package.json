@@ -5,7 +5,7 @@
   "main": "api/webhook.js",
   "scripts": {
     "build": "tsc",
-    "start": "node --max-old-space-size=450 dist/src/local.js",
+    "start": "node --expose-gc --max-old-space-size=450 dist/src/local.js",
     "dev": "tsc -w"
   },
   "keywords": [

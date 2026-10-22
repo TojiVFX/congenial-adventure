@@ -29,6 +29,8 @@ import {
   handleStatusCommand,
   handleStatusCallback,
   handleClearErrorsCallback,
+  handleCleanCommand,
+  handleCleanupCallback,
 } from './handlers/status.js';
 import { updateBotCommands } from './services/commandService.js';
 import { LoggerService } from './services/loggerService.js';
@@ -80,6 +82,7 @@ bot.command(['contact', 'request', 'support'], handleContactCommand);
 bot.command('reply', handleReplyCommand);
 bot.command(['dashboard', 'admin', 'panel'], handleAdminCommand);
 bot.command(['status', 'systemstatus', 'health'], handleStatusCommand);
+bot.command(['clean', 'cleanup', 'purge'], handleCleanCommand);
 bot.command(['managechat', 'manage', 'mychannels', 'addchannel'], handleManageChatCommand);
 bot.command(['acceptall', 'accepall'], handleAcceptAllCommand);
 
@@ -114,6 +117,10 @@ bot.on('callback_query:data', async (ctx, next) => {
   }
   if (data === 'admin_clear_errors') {
     await handleClearErrorsCallback(ctx);
+    return;
+  }
+  if (data === 'admin_cleanup') {
+    await handleCleanupCallback(ctx);
     return;
   }
   await handleAdminCallback(ctx);
